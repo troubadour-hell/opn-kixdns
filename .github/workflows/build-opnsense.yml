@@ -98,7 +98,9 @@ jobs:
 
           # 4. 用 tar 打成 FreeBSD pkg（.txz，本质是 tar.xz）
           cd pkgroot
-          tar -Jcf ../os-kixdns-community-${VERSION}.pkg ./*
+          # 注意这里使用 * 而不是 ./*，避免在包内生成以 "./" 开头的路径，
+          # 确保顶层条目名称为 "+MANIFEST" 而不是 "./+MANIFEST"，以便 pkg 正确识别。
+          tar -Jcf ../os-kixdns-community-${VERSION}.pkg *
           cd ..
 
           # 把生成的 pkg 挪到仓库根目录，方便后续 upload-artifact 使用 "*.pkg" 匹配
