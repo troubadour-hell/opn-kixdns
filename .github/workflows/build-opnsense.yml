@@ -76,33 +76,60 @@ jobs:
           mkdir -p pkgroot/usr/local
           cp -a src/opnsense pkgroot/usr/local/
 
-          # 2. 写 +MANIFEST（关键是 arch 字段要与目标系统匹配，这里假定为 FreeBSD 14 amd64）
-          cat > pkgroot/+MANIFEST << 'EOF'
-          {
-            "name": "os-kixdns-community",
-            "version": "0.1",
-            "origin": "local/os-kixdns-community",
-            "comment": "KixDNS High Performance DNS Server Plugin",
-            "desc": "KixDNS High Performance DNS Server Plugin",
-            "www": "https://github.com/olicesx/kixdns",
-            "maintainer": "user@example.com",
-            "arch": "FreeBSD:14:amd64",
-            "prefix": "/"
+          # 2. 写 +MANIFEST（使用 Python 动态生成，包含 files / flatsize，确保 pkg 正确记录和安装文件）
+          cd pkgroot
+          python3 - << 'EOF'
+          import os
+          import hashlib
+          import json
+
+          meta = {
+              "name": "os-kixdns-community",
+              "version": "0.1",
+              "origin": "local/os-kixdns-community",
+              "comment": "KixDNS High Performance DNS Server Plugin",
+              "desc": "KixDNS High Performance DNS Server Plugin",
+              "www": "https://github.com/olicesx/kixdns",
+              "maintainer": "user@example.com",
+              "arch": "FreeBSD:14:amd64",
+              "prefix": "/"
           }
+
+          files = {}
+          flatsize = 0
+
+          for root, dirs, fs in os.walk("."):
+              for fname in fs:
+                  # +MANIFEST 自己稍后写入，这里只统计实际 payload 和 +POST_INSTALL
+                  if fname == "+MANIFEST":
+                      continue
+                  path = os.path.join(root, fname)
+                  rel = os.path.relpath(path, ".")
+                  with open(path, "rb") as f:
+                      data = f.read()
+                  flatsize += len(data)
+                  # FreeBSD pkg 默认使用 sha256 哈希（十六进制）
+                  digest = hashlib.sha256(data).hexdigest()
+                  files["/" + rel] = digest
+
+          meta["flatsize"] = flatsize
+          meta["files"] = files
+
+          with open("+MANIFEST", "w") as f:
+              json.dump(meta, f, separators=(",", ":"))
           EOF
 
           # 3. 准备 +POST_INSTALL
-          cat > pkgroot/+POST_INSTALL << 'EOF'
+          cat > +POST_INSTALL << 'EOF'
           #!/bin/sh
           # KixDNS OPNsense plugin post-install hook
           # 如需在安装后执行初始化操作，可在此处添加命令。
           # 目前保持空操作，确保不会因找不到 xml 文件而导致安装失败。
           exit 0
           EOF
-          chmod +x pkgroot/+POST_INSTALL
+          chmod +x +POST_INSTALL
 
           # 4. 用 tar 打成 FreeBSD pkg（.txz，本质是 tar.xz）
-          cd pkgroot
           # 注意这里使用 * 而不是 ./*，避免在包内生成以 "./" 开头的路径，
           # 确保顶层条目名称为 "+MANIFEST" 而不是 "./+MANIFEST"，以便 pkg 正确识别。
           tar -Jcf ../os-kixdns-community-${VERSION}.pkg *
