@@ -177,4 +177,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: os-kixdns-community-package
-          path: "*.pkg"
+          # 构建步骤中我们把包移动到了仓库根目录的上一级目录
+          # 当前工作目录是 GITHUB_WORKSPACE（即仓库根目录），所以这里需要使用 ../ 才能找到生成的 pkg
+          path: "../os-kixdns-community-*.pkg"
