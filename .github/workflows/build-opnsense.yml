@@ -106,7 +106,7 @@ jobs:
               "www": "https://github.com/olicesx/kixdns",
               "maintainer": "olicesx",
               "arch": "FreeBSD:14:amd64",
-              "prefix": "/usr/local" 
+              "prefix": "/"
           }
 
           files = {}
@@ -117,12 +117,13 @@ jobs:
                   if fname == "+MANIFEST" or fname == "filelist.txt":
                       continue
                   path = os.path.join(root, fname)
-                  # rel 是相对路径，如 bin/kixdns
+                  # rel 是相对路径，如 usr/local/bin/kixdns
                   rel = os.path.relpath(path, ".").lstrip("./")
                   
                   # Manifest 中的 keys 必须是安装后的绝对路径
-                  # 结合 prefix=/usr/local，最终路径是 /usr/local/bin/kixdns
-                  abs_path = "/usr/local/" + rel
+                  # 即使 tar 包里是 relative path，Manifest 里也要写 absolute path
+                  # 我们把 tar 包结构改为 usr/local/...，Manifest key 也是 /usr/local/...
+                  abs_path = "/" + rel
                   
                   with open(path, "rb") as f:
                       data = f.read()
@@ -150,10 +151,34 @@ jobs:
           # 排除 +MANIFEST 和 filelist.txt 本身
           find . -type f | sed 's|^\./||' | grep -v '^+MANIFEST$' | grep -v '^filelist.txt$' | sort >> filelist.txt
           
-          # tar 包内路径将是相对路径，不含 usr/local 前缀
-          # pkg 会根据 prefix=/usr/local 将其安装到 /usr/local/...
-          tar -Jcf ../os-kixdns-community-${VERSION}.pkg -T filelist.txt
-          cd ..
+          # tar 包内路径将是相对路径，不含开头的 /
+          # 但为了匹配 /usr/local 前缀，我们需要让 tar 包里的结构变成 usr/local/bin/...
+          # 之前的逻辑是把 src/usr/local/bin/kixdns 拷贝到了 pkgroot/bin/kixdns
+          # 现在的逻辑需要调整前面的拷贝步骤，或者在这里做一次变换
+          # 为了最稳妥，我们调整 pkgroot 结构为 pkgroot/usr/local/...
+          
+          # 重新组织 pkgroot 目录结构以匹配绝对路径
+          mkdir -p final_pkg_root/usr/local
+          
+          # 移动 bin, etc, opnsense 到 final_pkg_root/usr/local
+          # 注意：opnsense 插件通常直接在 /usr/local/opnsense 下
+          cp -a bin final_pkg_root/usr/local/
+          cp -a etc final_pkg_root/usr/local/
+          cp -a opnsense final_pkg_root/usr/local/
+          
+          # 移动 +MANIFEST, +POST_INSTALL, filelist.txt 到 final_pkg_root 根目录
+          mv +MANIFEST final_pkg_root/
+          mv +POST_INSTALL final_pkg_root/
+          mv filelist.txt final_pkg_root/
+          
+          cd final_pkg_root
+          
+          # 重新生成 filelist.txt 因为路径变了
+          echo "+MANIFEST" > filelist.txt
+          find . -type f | sed 's|^\./||' | grep -v '^+MANIFEST$' | grep -v '^filelist.txt$' | sort >> filelist.txt
+          
+          tar -Jcf ../../os-kixdns-community-${VERSION}.pkg -T filelist.txt
+          cd ../..
 
           mv os-kixdns-community-${VERSION}.pkg ..
 
