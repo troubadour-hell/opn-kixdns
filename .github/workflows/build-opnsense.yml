@@ -15,6 +15,12 @@ jobs:
         with:
           path: plugin-src
 
+      - name: Get KixDNS latest commit SHA
+        id: kixdns-sha
+        run: |
+          SHA=$(git ls-remote https://github.com/olicesx/kixdns HEAD | awk '{print $1}')
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -32,6 +38,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
+      - name: Cache KixDNS binary
+        id: cache-kixdns-bin
+        uses: actions/cache@v4
+        with:
+          path: kixdns-bin/
+          key: ${{ runner.os }}-kixdns-bin-${{ steps.kixdns-sha.outputs.sha }}
+
       - name: Install Cross
         run: |
           if ! command -v cross >/dev/null 2>&1; then
@@ -41,13 +54,19 @@ jobs:
           fi
 
       - name: Build Binary (Cross)
+        if: steps.cache-kixdns-bin.outputs.cache-hit != 'true'
         run: |
           git clone https://github.com/olicesx/kixdns kixdns-src
           cd kixdns-src
           cross build --release --target x86_64-unknown-freebsd
           cd ..
+          mkdir -p kixdns-bin
+          cp kixdns-src/target/x86_64-unknown-freebsd/release/kixdns kixdns-bin/kixdns
+
+      - name: Copy binary into plugin tree
+        run: |
           mkdir -p plugin-src/src/usr/local/bin
-          cp kixdns-src/target/x86_64-unknown-freebsd/release/kixdns plugin-src/src/usr/local/bin/
+          cp kixdns-bin/kixdns plugin-src/src/usr/local/bin/
           chmod +x plugin-src/src/usr/local/bin/kixdns
 
       - name: Package with tar (manual FreeBSD pkg)
