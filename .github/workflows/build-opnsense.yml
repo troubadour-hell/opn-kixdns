@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-package:
-    name: Build and Package (FreeBSD)
+    name: Build and Package (Linux)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Plugin Code
@@ -15,62 +15,81 @@ jobs:
         with:
           path: plugin-src
 
-      - name: Build and Package in FreeBSD VM
-        uses: vmactions/freebsd-vm@v1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          usesh: true
-          prepare: |
-            pkg install -y git rust pkg
-          run: |
-            # Clone KixDNS Source
-            git clone https://github.com/olicesx/kixdns kixdns-src
+          targets: x86_64-unknown-freebsd
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Install Cross & FPM
+        run: |
+          if ! command -v cross >/dev/null 2>&1; then
+            cargo install cross --git https://github.com/cross-rs/cross
+          else
+            echo "cross already installed"
+          fi
+          sudo apt-get update && sudo apt-get install -y ruby ruby-dev rubygems build-essential
+          sudo gem install --no-document fpm
+
+      - name: Build Binary (Cross)
+        run: |
+          # Clone KixDNS Source
+          git clone https://github.com/olicesx/kixdns kixdns-src
+          
+          # Build KixDNS
+          cd kixdns-src
+          
+          # Use cross for build
+          cross build --release --target x86_64-unknown-freebsd
+          
+          # Strip binary to reduce size (cross strip not directly available, but we can try generic strip if compatible or rely on release profile)
+          # Note: Standard linux strip might not work perfectly on freebsd binaries, but usually acceptable for symbol removal. 
+          # Or better: don't strip if unsure about cross-strip compatibility to avoid corruption.
+          # We'll skip explicit strip for safety unless we use cross-toolchain's strip.
+          
+          cd ..
+          
+          # Move binary to plugin structure
+          mkdir -p plugin-src/src/usr/local/bin
+          cp kixdns-src/target/x86_64-unknown-freebsd/release/kixdns plugin-src/src/usr/local/bin/
+          chmod +x plugin-src/src/usr/local/bin/kixdns
+
+      - name: Package with FPM
+        run: |
+          cd plugin-src
+          
+          # Prepare Version
+          VERSION="0.1"
+          
+          fpm -s dir -t freebsd \
+            --name "os-kixdns-community" \
+            --version "$VERSION" \
+            --architecture "freebsd:13:x86:64" \
+            --maintainer "user@example.com" \
+            --description "KixDNS High Performance DNS Server Plugin" \
+            --url "https://github.com/olicesx/kixdns" \
+            --category "dns" \
+            --license "GPLv3" \
+            --after-install "+POST_INSTALL" \
+            -C src \
+            .
             
-            # Build KixDNS
-            cd kixdns-src
-            cargo build --release
-            cd ..
-            
-            BIN_SRC="kixdns-src/target/release/kixdns"
-            PLUGIN_DIR="plugin-src"
-            
-            echo "Binary built at: $BIN_SRC"
-            
-            # Place binary
-            mkdir -p $PLUGIN_DIR/src/usr/local/bin
-            cp $BIN_SRC $PLUGIN_DIR/src/usr/local/bin/
-            chmod +x $PLUGIN_DIR/src/usr/local/bin/kixdns
-            
-            # Create Manifest
-            cat <<EOF > +MANIFEST
-            name: os-kixdns-community
-            version: 0.1
-            origin: dns/kixdns-community
-            comment: KixDNS High Performance DNS Server Plugin
-            desc: KixDNS plugin for OPNsense
-            maintainer: user@example.com
-            www: https://github.com/olicesx/kixdns
-            prefix: /
-            categories: [dns]
-            licenselogic: single
-            licenses: [GPLv3]
-            deps: {}
-            EOF
-            
-            # Remove leading whitespace from Manifest to ensure valid YAML
-            sed -i '' 's/^[[:space:]]*//' +MANIFEST
-            
-            # Package it
-            # -m . : use current dir for manifest
-            # -r ... : root directory
-            # -o . : output to current dir
-            pkg create -m . -r $PLUGIN_DIR/src -o .
-            
-            ls -lh *.pkg
-            mv *.pkg os-kixdns-community-0.1.pkg
+          ls -lh *.txz
+          mv *.txz ../os-kixdns-community-${VERSION}.pkg
 
       - name: Upload Plugin Package
         uses: actions/upload-artifact@v4
         with:
           name: os-kixdns-community-package
           path: "*.pkg"
-
