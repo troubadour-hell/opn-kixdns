@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-package:
-    name: Build and Package (Linux)
+    name: Build and Package
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Plugin Code
@@ -44,23 +44,20 @@ jobs:
 
       - name: Build Binary (Cross)
         run: |
-          # Clone KixDNS Source
+          # 克隆 KixDNS 源码
           git clone https://github.com/olicesx/kixdns kixdns-src
           
-          # Build KixDNS
+          # 使用 cross 交叉编译 KixDNS（目标为 FreeBSD x86_64）
           cd kixdns-src
           
-          # Use cross for build
           cross build --release --target x86_64-unknown-freebsd
           
-          # Strip binary to reduce size (cross strip not directly available, but we can try generic strip if compatible or rely on release profile)
-          # Note: Standard linux strip might not work perfectly on freebsd binaries, but usually acceptable for symbol removal. 
-          # Or better: don't strip if unsure about cross-strip compatibility to avoid corruption.
-          # We'll skip explicit strip for safety unless we use cross-toolchain's strip.
+          # 不显式调用 strip：Linux 环境下的 strip 处理 FreeBSD ELF 可能存在兼容性风险，
+          # 这里依赖 Rust release 配置进行优化，保证二进制安全可靠。
           
           cd ..
           
-          # Move binary to plugin structure
+          # 将编译好的二进制放入插件目录结构中
           mkdir -p plugin-src/src/usr/local/bin
           cp kixdns-src/target/x86_64-unknown-freebsd/release/kixdns plugin-src/src/usr/local/bin/
           chmod +x plugin-src/src/usr/local/bin/kixdns
@@ -69,15 +66,23 @@ jobs:
         run: |
           cd plugin-src
           
-          # Prepare Version
+          # 准备版本号（如需发版可在此处统一调整）
           VERSION="0.1"
           
-          # 使用与当前 OPNsense 基础系统匹配的架构
-          # 例如 OPNsense 24.x 基于 FreeBSD 14 amd64
+          # 使用 FPM 构建 FreeBSD 包
+          # -s dir: 源类型为目录
+          # -t freebsd: 目标类型为 FreeBSD 包
+          # --name: 软件包名称
+          # --version: 软件包版本
+          # -C src: 以 src 作为根目录打包（包内路径相对于 src）
+          # --architecture: CPU 架构（这里用 amd64）
+          # --freebsd-abi: 指定 FreeBSD ABI（必须与目标 OPNsense/FreeBSD 版本一致，例如 FreeBSD:14:amd64）
+          # --after-install: 安装后执行的脚本（+POST_INSTALL）
           fpm -s dir -t freebsd \
             --name "os-kixdns-community" \
             --version "$VERSION" \
-            --architecture "freebsd:14:x86:64" \
+            --architecture "amd64" \
+            --freebsd-abi "FreeBSD:14:amd64" \
             --maintainer "user@example.com" \
             --description "KixDNS High Performance DNS Server Plugin" \
             --url "https://github.com/olicesx/kixdns" \
