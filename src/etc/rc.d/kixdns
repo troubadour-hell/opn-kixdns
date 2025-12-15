@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# PROVIDE: kixdns
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="kixdns"
+rcvar="kixdns_enable"
+
+load_rc_config $name
+
+: ${kixdns_enable:="NO"}
+: ${kixdns_config:="/usr/local/etc/kixdns/pipeline.json"}
+
+command="/usr/local/bin/kixdns"
+command_args="--config ${kixdns_config} &"
+
+run_rc_command "$1"
+

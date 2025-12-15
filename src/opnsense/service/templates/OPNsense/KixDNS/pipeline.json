@@ -1,0 +1,47 @@
+{
+    "version": "1.0",
+    "settings": {
+        "bind_udp": "{{ KixDNS.general.bind_udp }}",
+        "bind_tcp": "{{ KixDNS.general.bind_tcp }}",
+        "default_upstream": "{{ KixDNS.general.default_upstream }}",
+        "upstream_timeout_ms": {{ KixDNS.general.upstream_timeout }},
+        "min_ttl": {{ KixDNS.general.min_ttl }},
+        "udp_workers": {{ KixDNS.general.udp_workers }}
+    },
+    "pipelines": [
+{% if helpers.exists('KixDNS.pipelines.pipeline') %}
+    {% for pipe in helpers.toList('KixDNS.pipelines.pipeline') %}
+        {
+            "id": "{{ pipe.id }}",
+            "rules": [
+        {% if helpers.exists('KixDNS.rules.rule') %}
+            {% for rule in helpers.toList('KixDNS.rules.rule') %}
+                {% if rule.pipeline_id == pipe.id and rule.enabled == '1' %}
+                {
+                    "name": "{{ rule.name }}",
+                    "matchers": {{ rule.matchers | default('[]') }},
+                    "matcher_operator": "{{ rule.matcher_operator }}",
+                    "actions": {{ rule.actions | default('[]') }},
+                    "response_matchers": {{ rule.response_matchers | default('[]') }}
+                },
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+            ]
+        },
+    {% endfor %}
+{% endif %}
+    ],
+    "pipeline_select": [
+{% if helpers.exists('KixDNS.selectors.selector') %}
+    {% for sel in helpers.toList('KixDNS.selectors.selector') %}
+        {
+            "pipeline": "{{ sel.target_pipeline }}",
+            "matchers": {{ sel.matchers | default('[]') }},
+            "matcher_operator": "{{ sel.operator }}"
+        },
+    {% endfor %}
+{% endif %}
+    ]
+}
+

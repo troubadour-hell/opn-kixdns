@@ -1,0 +1,106 @@
+<model>
+    <mount>//OPNsense/KixDNS</mount>
+    <description>KixDNS Configuration</description>
+    <items>
+        <general>
+            <enabled type="BooleanField">
+                <default>0</default>
+                <Required>Y</Required>
+            </enabled>
+            <bind_udp type="TextField">
+                <default>0.0.0.0:5353</default>
+                <Required>Y</Required>
+            </bind_udp>
+            <bind_tcp type="TextField">
+                <default>0.0.0.0:5353</default>
+                <Required>Y</Required>
+            </bind_tcp>
+            <default_upstream type="TextField">
+                <default>1.1.1.1:53</default>
+                <Required>Y</Required>
+            </default_upstream>
+            <upstream_timeout type="IntegerField">
+                <default>2000</default>
+                <Required>Y</Required>
+            </upstream_timeout>
+            <min_ttl type="IntegerField">
+                <default>0</default>
+                <Required>Y</Required>
+            </min_ttl>
+            <udp_workers type="IntegerField">
+                <default>0</default>
+                <Required>Y</Required>
+            </udp_workers>
+            <log_level type="OptionField">
+                <default>info</default>
+                <OptionValues>
+                    <trace>Trace</trace>
+                    <debug>Debug</debug>
+                    <info>Info</info>
+                    <warn>Warning</warn>
+                    <error>Error</error>
+                </OptionValues>
+            </log_level>
+        </general>
+        <pipelines>
+            <pipeline type="ArrayField">
+                <id type="TextField">
+                    <Required>Y</Required>
+                    <Unique>Y</Unique>
+                </id>
+                <description type="TextField"/>
+            </pipeline>
+        </pipelines>
+        <rules>
+             <rule type="ArrayField">
+                <pipeline_id type="TextField">
+                    <Required>Y</Required>
+                </pipeline_id>
+                <name type="TextField">
+                    <Required>Y</Required>
+                </name>
+                <enabled type="BooleanField">
+                    <default>1</default>
+                </enabled>
+                <!-- Complex structures serialized as JSON strings for simplicity in first iteration -->
+                <!-- Ideally these would be nested ArrayFields but UI implementation is complex -->
+                <matchers type="TextField">
+                    <default>[]</default>
+                </matchers>
+                <matcher_operator type="OptionField">
+                    <default>and</default>
+                    <OptionValues>
+                        <and>AND</and>
+                        <or>OR</or>
+                        <not>NOT</not>
+                    </OptionValues>
+                </matcher_operator>
+                <actions type="TextField">
+                    <default>[]</default>
+                </actions>
+                <response_matchers type="TextField">
+                    <default>[]</default>
+                </response_matchers>
+             </rule>
+        </rules>
+        <selectors>
+            <selector type="ArrayField">
+                <target_pipeline type="TextField">
+                    <Required>Y</Required>
+                </target_pipeline>
+                <matchers type="TextField">
+                     <default>[]</default>
+                </matchers>
+                <operator type="OptionField">
+                    <default>and</default>
+                     <OptionValues>
+                        <and>AND</and>
+                        <or>OR</or>
+                    </OptionValues>
+                </operator>
+                <description type="TextField"/>
+            </selector>
+        </selectors>
+    </items>
+</model>
+

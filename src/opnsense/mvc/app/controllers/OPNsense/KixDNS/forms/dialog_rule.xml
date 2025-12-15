@@ -1,0 +1,37 @@
+<form>
+    <field>
+        <id>rule.name</id>
+        <label>Name</label>
+        <type>text</type>
+        <help>Rule name</help>
+    </field>
+    <field>
+        <id>rule.enabled</id>
+        <label>Enabled</label>
+        <type>checkbox</type>
+    </field>
+    <field>
+        <id>rule.pipeline_id</id>
+        <label>Pipeline ID</label>
+        <type>text</type>
+        <help>Manually enter the Pipeline ID this rule belongs to.</help>
+    </field>
+    <field>
+        <id>rule.matchers</id>
+        <label>Matchers (JSON)</label>
+        <type>text</type>
+        <help>JSON array of matchers. Example: [{"type":"domain_suffix","value":"example.com"}]</help>
+    </field>
+    <field>
+        <id>rule.matcher_operator</id>
+        <label>Operator</label>
+        <type>dropdown</type>
+    </field>
+    <field>
+        <id>rule.actions</id>
+        <label>Actions (JSON)</label>
+        <type>text</type>
+        <help>JSON array of actions. Example: [{"type":"forward","upstream":"8.8.8.8:53"}]</help>
+    </field>
+</form>
+

@@ -1,0 +1,73 @@
+name: Build OPNsense Plugin
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-package:
+    name: Build and Package (FreeBSD)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Plugin Code
+        uses: actions/checkout@v4
+        with:
+          path: plugin-src
+
+      - name: Build and Package in FreeBSD VM
+        uses: vmactions/freebsd-vm@v1
+        with:
+          usesh: true
+          prepare: |
+            pkg install -y git rust pkg
+          run: |
+            # Clone KixDNS Source
+            git clone https://github.com/olicesx/kixdns kixdns-src
+            
+            # Build KixDNS
+            cd kixdns-src
+            cargo build --release
+            cd ..
+            
+            BIN_SRC="kixdns-src/target/release/kixdns"
+            PLUGIN_DIR="plugin-src"
+            
+            echo "Binary built at: $BIN_SRC"
+            
+            # Place binary
+            mkdir -p $PLUGIN_DIR/src/usr/local/bin
+            cp $BIN_SRC $PLUGIN_DIR/src/usr/local/bin/
+            chmod +x $PLUGIN_DIR/src/usr/local/bin/kixdns
+            
+            # Create Manifest
+            cat <<EOF > +MANIFEST
+            name: os-kixdns-community
+            version: 0.1
+            origin: dns/kixdns-community
+            comment: KixDNS High Performance DNS Server Plugin
+            desc: KixDNS plugin for OPNsense
+            maintainer: user@example.com
+            www: https://github.com/olicesx/kixdns
+            prefix: /
+            categories: [dns]
+            licenselogic: single
+            licenses: [GPLv3]
+            deps: {}
+            EOF
+            
+            # Package it
+            # -m . : use current dir for manifest
+            # -r ... : root directory
+            # -o . : output to current dir
+            pkg create -m . -r $PLUGIN_DIR/src -o .
+            
+            ls -lh *.pkg
+            mv *.pkg os-kixdns-community-0.1.pkg
+
+      - name: Upload Plugin Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: os-kixdns-community-package
+          path: "*.pkg"
+

@@ -1,0 +1,11 @@
+<plugin>
+    <name>kixdns-community</name>
+    <version>0.1</version>
+    <comment>KixDNS High Performance DNS Server</comment>
+    <url>https://github.com/yourrepo/kixdns</url>
+    <maintainer>user@example.com</maintainer>
+    <description>
+        KixDNS is a high-performance, asynchronous DNS server written in Rust, designed for flexible routing and complex rule processing.
+    </description>
+</plugin>
+
