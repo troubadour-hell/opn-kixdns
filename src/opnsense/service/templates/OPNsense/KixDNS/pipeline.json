@@ -1,21 +1,21 @@
 {
     "version": "1.0",
     "settings": {
-        "bind_udp": "{{ kixdns.general.bind_udp }}",
-        "bind_tcp": "{{ kixdns.general.bind_tcp }}",
-        "default_upstream": "{{ kixdns.general.default_upstream }}",
-        "upstream_timeout_ms": {{ kixdns.general.upstream_timeout }},
-        "min_ttl": {{ kixdns.general.min_ttl }},
-        "udp_workers": {{ kixdns.general.udp_workers }}
+        "bind_udp": "{{ OPNsense.kixdns.general.bind_udp }}",
+        "bind_tcp": "{{ OPNsense.kixdns.general.bind_tcp }}",
+        "default_upstream": "{{ OPNsense.kixdns.general.default_upstream }}",
+        "upstream_timeout_ms": {{ OPNsense.kixdns.general.upstream_timeout }},
+        "min_ttl": {{ OPNsense.kixdns.general.min_ttl }},
+        "udp_workers": {{ OPNsense.kixdns.general.udp_workers }}
     },
     "pipelines": [
-{% if helpers.exists('kixdns.pipelines.pipeline') %}
-    {% for pipe in helpers.toList('kixdns.pipelines.pipeline') %}
+{% if helpers.exists('OPNsense.kixdns.pipelines.pipeline') %}
+    {% for pipe in helpers.toList('OPNsense.kixdns.pipelines.pipeline') %}
         {
             "id": "{{ pipe.id }}",
             "rules": [
-        {% if helpers.exists('kixdns.rules.rule') %}
-            {% for rule in helpers.toList('kixdns.rules.rule') %}
+        {% if helpers.exists('OPNsense.kixdns.rules.rule') %}
+            {% for rule in helpers.toList('OPNsense.kixdns.rules.rule') %}
                 {% if rule.pipeline_id == pipe.id and rule.enabled == '1' %}
                 {
                     "name": "{{ rule.name }}",
@@ -33,8 +33,8 @@
 {% endif %}
     ],
     "pipeline_select": [
-{% if helpers.exists('kixdns.selectors.selector') %}
-    {% for sel in helpers.toList('kixdns.selectors.selector') %}
+{% if helpers.exists('OPNsense.kixdns.selectors.selector') %}
+    {% for sel in helpers.toList('OPNsense.kixdns.selectors.selector') %}
         {
             "pipeline": "{{ sel.target_pipeline }}",
             "matchers": {{ sel.matchers | default('[]') }},
