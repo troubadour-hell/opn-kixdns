@@ -2,10 +2,24 @@
     <name>kixdns-community</name>
     <version>0.1</version>
     <comment>KixDNS High Performance DNS Server</comment>
-    <url>https://github.com/yourrepo/kixdns</url>
-    <maintainer>user@example.com</maintainer>
+    <url>https://github.com/olicesx/kixdns</url>
+    <maintainer>olicesx</maintainer>
     <description>
         KixDNS is a high-performance, asynchronous DNS server written in Rust, designed for flexible routing and complex rule processing.
     </description>
-</plugin>
 
+
+    <templates>
+        <template>
+            <filename>/usr/local/etc/kixdns/pipeline.json</filename>
+            <template>OPNsense/KixDNS/pipeline.json</template>
+        </template>
+    </templates>
+
+  
+    <service>
+        <name>kixdns</name>
+        <description>KixDNS DNS service</description>
+        <url>/ui/kixdns</url>
+    </service>
+</plugin>
