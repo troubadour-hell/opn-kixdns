@@ -104,7 +104,7 @@ jobs:
               "comment": "KixDNS High Performance DNS Server Plugin",
               "desc": "KixDNS High Performance DNS Server Plugin",
               "www": "https://github.com/olicesx/kixdns",
-              "maintainer": "user@example.com",
+              "maintainer": "olicesx",
               "arch": "FreeBSD:14:amd64",
               "prefix": "/usr/local" 
           }
@@ -114,17 +114,21 @@ jobs:
 
           for root, dirs, fs in os.walk("."):
               for fname in fs:
-                  if fname == "+MANIFEST":
+                  if fname == "+MANIFEST" or fname == "filelist.txt":
                       continue
                   path = os.path.join(root, fname)
-                  # 这里的 rel 已经是相对于 pkgroot (即 /usr/local) 的路径了，如 bin/kixdns, opnsense/...
+                  # rel 是相对路径，如 bin/kixdns
                   rel = os.path.relpath(path, ".").lstrip("./")
+                  
+                  # Manifest 中的 keys 必须是安装后的绝对路径
+                  # 结合 prefix=/usr/local，最终路径是 /usr/local/bin/kixdns
+                  abs_path = "/usr/local/" + rel
                   
                   with open(path, "rb") as f:
                       data = f.read()
                   flatsize += len(data)
                   digest = hashlib.sha256(data).hexdigest()
-                  files[rel] = digest
+                  files[abs_path] = digest
 
           meta["flatsize"] = flatsize
           meta["files"] = files
@@ -141,9 +145,13 @@ jobs:
           chmod +x +POST_INSTALL
 
           # 4. 打包
+          # 必须确保 +MANIFEST 是包中的第一个文件
           echo "+MANIFEST" > filelist.txt
-          find . -type f | sed 's|^\./||' | grep -v '^+MANIFEST$' | sort >> filelist.txt
+          # 排除 +MANIFEST 和 filelist.txt 本身
+          find . -type f | sed 's|^\./||' | grep -v '^+MANIFEST$' | grep -v '^filelist.txt$' | sort >> filelist.txt
           
+          # tar 包内路径将是相对路径，不含 usr/local 前缀
+          # pkg 会根据 prefix=/usr/local 将其安装到 /usr/local/...
           tar -Jcf ../os-kixdns-community-${VERSION}.pkg -T filelist.txt
           cd ..
 
