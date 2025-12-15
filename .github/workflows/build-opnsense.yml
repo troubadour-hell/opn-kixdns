@@ -72,6 +72,9 @@ jobs:
           # 注意：OPNsense 的 MVC / service 文件应安装到 /usr/local/opnsense/...
           # 仓库目录为 src/opnsense/...，这里映射到 pkgroot/usr/local/opnsense/...
           cp -a src/etc pkgroot/
+          # src/etc/kixdns/+POST_INSTALL 是仓库内的辅助脚本，不作为 pkg payload 单独安装，
+          # 否则会因为未出现在 +MANIFEST 的 files 列表中而导致 pkg 报错。
+          rm -f pkgroot/etc/kixdns/+POST_INSTALL || true
           cp -a src/usr pkgroot/
           mkdir -p pkgroot/usr/local
           cp -a src/opnsense pkgroot/usr/local/
