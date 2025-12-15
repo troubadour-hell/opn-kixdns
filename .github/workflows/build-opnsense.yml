@@ -72,10 +72,12 @@ jobs:
           # Prepare Version
           VERSION="0.1"
           
+          # 使用与当前 OPNsense 基础系统匹配的架构
+          # 例如 OPNsense 24.x 基于 FreeBSD 14 amd64
           fpm -s dir -t freebsd \
             --name "os-kixdns-community" \
             --version "$VERSION" \
-            --architecture "freebsd:13:x86:64" \
+            --architecture "freebsd:14:x86:64" \
             --maintainer "user@example.com" \
             --description "KixDNS High Performance DNS Server Plugin" \
             --url "https://github.com/olicesx/kixdns" \
