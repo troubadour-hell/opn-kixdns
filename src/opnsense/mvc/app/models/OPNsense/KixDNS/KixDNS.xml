@@ -1,5 +1,5 @@
 <model>
-    <mount>//OPNsense/KixDNS</mount>
+    <mount>//OPNsense/kixdns</mount>
     <description>KixDNS Configuration</description>
     <items>
         <general>
