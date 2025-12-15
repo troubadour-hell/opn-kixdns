@@ -101,6 +101,10 @@ jobs:
           tar -Jcf ../os-kixdns-community-${VERSION}.pkg ./*
           cd ..
 
+          # 把生成的 pkg 挪到仓库根目录，方便后续 upload-artifact 使用 "*.pkg" 匹配
+          mv os-kixdns-community-${VERSION}.pkg ..
+
+          cd ..
           ls -lh os-kixdns-community-${VERSION}.pkg
 
       - name: Upload Plugin Package
