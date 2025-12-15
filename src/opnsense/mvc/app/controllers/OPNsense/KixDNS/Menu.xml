@@ -1,0 +1,9 @@
+<menu>
+    <name>KixDNS</name>
+    <parent>services</parent>
+    <order>80</order>
+    <icon>fa-database</icon>
+    <url>/ui/kixdns</url>
+</menu>
+
+
