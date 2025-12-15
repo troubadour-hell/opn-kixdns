@@ -53,6 +53,7 @@ jobs:
           cd ..
           
           # 将编译好的二进制放入插件目录结构中
+          # 注意：这里先放到 src 下的临时位置，后面统一打包
           mkdir -p plugin-src/src/usr/local/bin
           cp kixdns-src/target/x86_64-unknown-freebsd/release/kixdns plugin-src/src/usr/local/bin/
           chmod +x plugin-src/src/usr/local/bin/kixdns
@@ -61,33 +62,41 @@ jobs:
         run: |
           cd plugin-src
           
-          # 准备版本号（如需发版可在此处统一调整）
           VERSION="0.1"
 
-          # 1. 准备 pkgroot 目录（作为 FreeBSD pkg 展开后的根）
+          # 1. 准备 pkgroot 目录
+          # 采用 prefix=/usr/local 方案，包内文件路径不包含 usr/local 前缀
           rm -rf pkgroot
           mkdir -p pkgroot
 
-          # 拷贝实际要安装的文件树
-          # 注意：OPNsense 的 MVC / service 文件应安装到 /usr/local/opnsense/...
-          # 仓库目录为 src/opnsense/...，这里映射到 pkgroot/usr/local/opnsense/...
-          # 不直接打包 src/etc，避免在 /etc 下放文件（OPNsense 设计文档中 rc 脚本位于 /usr/local/etc/rc.d）
-          # 仅将 rc 脚本重定位到 /usr/local/etc/rc.d/kixdns
-          mkdir -p pkgroot/usr/local/etc/rc.d
-          cp src/etc/rc.d/kixdns pkgroot/usr/local/etc/rc.d/kixdns
-          chmod +x pkgroot/usr/local/etc/rc.d/kixdns
+          # A. 处理二进制文件
+          # 原路径: src/usr/local/bin/kixdns -> 包内: bin/kixdns
+          mkdir -p pkgroot/bin
+          cp src/usr/local/bin/kixdns pkgroot/bin/
+          chmod +x pkgroot/bin/kixdns
 
-          cp -a src/usr pkgroot/
-          mkdir -p pkgroot/usr/local
-          cp -a src/opnsense pkgroot/usr/local/
+          # B. 处理 RC 脚本
+          # 原路径: src/etc/rc.d/kixdns -> 包内: etc/rc.d/kixdns (相对于 /usr/local，即 /usr/local/etc/rc.d/kixdns)
+          mkdir -p pkgroot/etc/rc.d
+          cp src/etc/rc.d/kixdns pkgroot/etc/rc.d/kixdns
+          chmod +x pkgroot/etc/rc.d/kixdns
 
-          # 2. 写 +MANIFEST（使用 Python 动态生成，包含 files / flatsize，确保 pkg 正确记录和安装文件）
+          # C. 处理 OPNsense 插件文件 (MVC, service, etc)
+          # 原路径: src/opnsense/... -> 包内: opnsense/... (相对于 /usr/local，即 /usr/local/opnsense/...)
+          cp -a src/opnsense pkgroot/
+
+          # D. 处理其他可能的 /usr/local 下文件
+          # 如果 src/usr 下还有其他非 bin/kixdns 的文件，也需要拷过来
+          # 暂时假设 src/usr/local 下只有 bin/kixdns，如果有 share/man 等需额外处理
+
+          # 2. 写 +MANIFEST
           cd pkgroot
           python3 - << 'EOF'
           import os
           import hashlib
           import json
 
+          # 注意：prefix 设置为 /usr/local
           meta = {
               "name": "os-kixdns-community",
               "version": "0.1",
@@ -97,7 +106,7 @@ jobs:
               "www": "https://github.com/olicesx/kixdns",
               "maintainer": "user@example.com",
               "arch": "FreeBSD:14:amd64",
-              "prefix": "/"
+              "prefix": "/usr/local" 
           }
 
           files = {}
@@ -105,16 +114,15 @@ jobs:
 
           for root, dirs, fs in os.walk("."):
               for fname in fs:
-                  # +MANIFEST 自己稍后写入，这里只统计实际 payload 和 +POST_INSTALL
                   if fname == "+MANIFEST":
                       continue
                   path = os.path.join(root, fname)
-                  # pkg manifest 中的 files 键应为相对于 prefix 的路径，且不以 / 开头
+                  # 这里的 rel 已经是相对于 pkgroot (即 /usr/local) 的路径了，如 bin/kixdns, opnsense/...
                   rel = os.path.relpath(path, ".").lstrip("./")
+                  
                   with open(path, "rb") as f:
                       data = f.read()
                   flatsize += len(data)
-                  # FreeBSD pkg 默认使用 sha256 哈希（十六进制）
                   digest = hashlib.sha256(data).hexdigest()
                   files[rel] = digest
 
@@ -128,20 +136,16 @@ jobs:
           # 3. 准备 +POST_INSTALL
           cat > +POST_INSTALL << 'EOF'
           #!/bin/sh
-          # KixDNS OPNsense plugin post-install hook
-          # 如需在安装后执行初始化操作，可在此处添加命令。
-          # 目前保持空操作，确保不会因找不到 xml 文件而导致安装失败。
           exit 0
           EOF
           chmod +x +POST_INSTALL
 
-          # 4. 用 tar 打成 FreeBSD pkg（.txz，本质是 tar.xz）
-          # 关键修改：只将 *文件* 列表传给 tar，不包含目录条目，
-          # 避免 pkg 报错 "Directory xxx not specified in the manifest"
+          # 4. 打包
+          # find . -type f 会列出 bin/kixdns, opnsense/..., +MANIFEST 等
+          # tar 包内路径将是相对路径，不含 usr/local 前缀
           find . -type f | sed 's|^\./||' | tar -Jcf ../os-kixdns-community-${VERSION}.pkg -T -
           cd ..
 
-          # 把生成的 pkg 挪到仓库根目录，方便后续 upload-artifact 使用 "*.pkg" 匹配
           mv os-kixdns-community-${VERSION}.pkg ..
 
           cd ..
