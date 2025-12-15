@@ -56,6 +56,9 @@ jobs:
             deps: {}
             EOF
             
+            # Remove leading whitespace from Manifest to ensure valid YAML
+            sed -i '' 's/^[[:space:]]*//' +MANIFEST
+            
             # Package it
             # -m . : use current dir for manifest
             # -r ... : root directory
