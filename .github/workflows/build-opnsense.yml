@@ -141,9 +141,10 @@ jobs:
           chmod +x +POST_INSTALL
 
           # 4. 打包
-          # find . -type f 会列出 bin/kixdns, opnsense/..., +MANIFEST 等
-          # tar 包内路径将是相对路径，不含 usr/local 前缀
-          find . -type f | sed 's|^\./||' | tar -Jcf ../os-kixdns-community-${VERSION}.pkg -T -
+          echo "+MANIFEST" > filelist.txt
+          find . -type f | sed 's|^\./||' | grep -v '^+MANIFEST$' | sort >> filelist.txt
+          
+          tar -Jcf ../os-kixdns-community-${VERSION}.pkg -T filelist.txt
           cd ..
 
           mv os-kixdns-community-${VERSION}.pkg ..
