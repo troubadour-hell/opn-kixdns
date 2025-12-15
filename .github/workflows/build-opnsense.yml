@@ -166,17 +166,13 @@ jobs:
           # tar 包内路径将是相对路径，不含开头的 /
           # 如 usr/local/bin/kixdns
           tar -Jcf ../../os-kixdns-community-${VERSION}.pkg -T filelist.txt
+          # 回到 plugin-src 目录，此时包文件在 plugin-src/os-kixdns-community-${VERSION}.pkg
           cd ../..
-
-          mv os-kixdns-community-${VERSION}.pkg ..
-
-          cd ..
           ls -lh os-kixdns-community-${VERSION}.pkg
 
       - name: Upload Plugin Package
         uses: actions/upload-artifact@v4
         with:
           name: os-kixdns-community-package
-          # 构建步骤中我们把包移动到了仓库根目录的上一级目录
-          # 当前工作目录是 GITHUB_WORKSPACE（即仓库根目录），所以这里需要使用 ../ 才能找到生成的 pkg
-          path: "../os-kixdns-community-*.pkg"
+          # 包最终保存在 plugin-src 目录中
+          path: "plugin-src/os-kixdns-community-*.pkg"
