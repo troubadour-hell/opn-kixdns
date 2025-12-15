@@ -32,15 +32,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
-      - name: Install Cross & FPM
+      - name: Install Cross
         run: |
           if ! command -v cross >/dev/null 2>&1; then
             cargo install cross --git https://github.com/cross-rs/cross
           else
             echo "cross already installed"
           fi
-          sudo apt-get update && sudo apt-get install -y ruby ruby-dev rubygems build-essential
-          sudo gem install --no-document fpm
 
       - name: Build Binary (Cross)
         run: |
@@ -52,9 +50,6 @@ jobs:
           
           cross build --release --target x86_64-unknown-freebsd
           
-          # 不显式调用 strip：Linux 环境下的 strip 处理 FreeBSD ELF 可能存在兼容性风险，
-          # 这里依赖 Rust release 配置进行优化，保证二进制安全可靠。
-          
           cd ..
           
           # 将编译好的二进制放入插件目录结构中
@@ -62,38 +57,51 @@ jobs:
           cp kixdns-src/target/x86_64-unknown-freebsd/release/kixdns plugin-src/src/usr/local/bin/
           chmod +x plugin-src/src/usr/local/bin/kixdns
 
-      - name: Package with FPM
+      - name: Package with tar (manual FreeBSD pkg)
         run: |
           cd plugin-src
           
           # 准备版本号（如需发版可在此处统一调整）
           VERSION="0.1"
-          
-          # 使用 FPM 构建 FreeBSD 包
-          # -s dir: 源类型为目录
-          # -t freebsd: 目标类型为 FreeBSD 包
-          # --name: 软件包名称
-          # --version: 软件包版本
-          # -C src: 以 src 作为根目录打包（包内路径相对于 src）
-          # --architecture: CPU 架构（这里用 amd64）
-          # --freebsd-abi: 指定 FreeBSD ABI（必须与目标 OPNsense/FreeBSD 版本一致，例如 FreeBSD:14:amd64）
-          # --after-install: 安装后执行的脚本（+POST_INSTALL）
-          fpm -s dir -t freebsd \
-            --name "os-kixdns-community" \
-            --version "$VERSION" \
-            --architecture "amd64" \
-            --freebsd-abi "FreeBSD:14:amd64" \
-            --maintainer "user@example.com" \
-            --description "KixDNS High Performance DNS Server Plugin" \
-            --url "https://github.com/olicesx/kixdns" \
-            --category "dns" \
-            --license "GPLv3" \
-            --after-install "+POST_INSTALL" \
-            -C src \
-            .
-            
-          ls -lh *.txz
-          mv *.txz ../os-kixdns-community-${VERSION}.pkg
+
+          # 1. 准备 pkgroot 目录（作为 FreeBSD pkg 展开后的根）
+          rm -rf pkgroot
+          mkdir -p pkgroot
+
+          # 拷贝实际要安装的文件树
+          cp -a src/etc src/opnsense src/usr pkgroot/
+
+          # 2. 写 +MANIFEST（关键是 arch 字段要与目标系统匹配，这里假定为 FreeBSD 14 amd64）
+          cat > pkgroot/+MANIFEST << 'EOF'
+          {
+            "name": "os-kixdns-community",
+            "version": "0.1",
+            "origin": "local/os-kixdns-community",
+            "comment": "KixDNS High Performance DNS Server Plugin",
+            "desc": "KixDNS High Performance DNS Server Plugin",
+            "www": "https://github.com/olicesx/kixdns",
+            "maintainer": "user@example.com",
+            "arch": "FreeBSD:14:amd64",
+            "prefix": "/"
+          }
+          EOF
+
+          # 3. 准备 +POST_INSTALL
+          cat > pkgroot/+POST_INSTALL << 'EOF'
+          #!/bin/sh
+          # KixDNS OPNsense plugin post-install hook
+          # 如需在安装后执行初始化操作，可在此处添加命令。
+          # 目前保持空操作，确保不会因找不到 xml 文件而导致安装失败。
+          exit 0
+          EOF
+          chmod +x pkgroot/+POST_INSTALL
+
+          # 4. 用 tar 打成 FreeBSD pkg（.txz，本质是 tar.xz）
+          cd pkgroot
+          tar -Jcf ../os-kixdns-community-${VERSION}.pkg ./*
+          cd ..
+
+          ls -lh os-kixdns-community-${VERSION}.pkg
 
       - name: Upload Plugin Package
         uses: actions/upload-artifact@v4
