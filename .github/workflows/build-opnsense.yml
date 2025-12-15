@@ -94,9 +94,12 @@ jobs:
           mkdir -p final_pkg_root/usr/local
           
           # 移动 bin, etc, opnsense 到 final_pkg_root/usr/local
-          cp -a bin final_pkg_root/usr/local/
-          cp -a etc final_pkg_root/usr/local/
-          cp -a opnsense final_pkg_root/usr/local/
+          # 注意：之前的文件是在 pkgroot 下生成的，比如 pkgroot/bin, pkgroot/etc
+          # 所以这里要从 pkgroot/bin 复制到 final_pkg_root/usr/local
+          
+          cp -a pkgroot/bin final_pkg_root/usr/local/
+          cp -a pkgroot/etc final_pkg_root/usr/local/
+          cp -a pkgroot/opnsense final_pkg_root/usr/local/
           
           # 进入 final_pkg_root 生成 manifest，确保扫描到的是最终路径
           cd final_pkg_root
