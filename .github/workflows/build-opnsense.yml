@@ -109,7 +109,6 @@ jobs:
           import hashlib
           import json
 
-          # 注意：prefix 设置为 /
           meta = {
               "name": "os-kixdns-community",
               "version": "0.1",
@@ -130,13 +129,8 @@ jobs:
                   if fname == "+MANIFEST" or fname == "filelist.txt":
                       continue
                   path = os.path.join(root, fname)
-                  # rel 是相对路径，如 usr/local/bin/kixdns
                   rel = os.path.relpath(path, ".").lstrip("./")
-                  
-                  # Manifest 中的 keys 必须是安装后的绝对路径
-                  # 结合 prefix=/，最终路径就是 /usr/local/bin/kixdns
                   abs_path = "/" + rel
-                  
                   with open(path, "rb") as f:
                       data = f.read()
                   flatsize += len(data)
@@ -162,12 +156,8 @@ jobs:
           echo "+MANIFEST" > filelist.txt
           # 排除 +MANIFEST 和 filelist.txt 本身
           find . -type f | sed 's|^\./||' | grep -v '^+MANIFEST$' | grep -v '^filelist.txt$' | sort >> filelist.txt
-          
-          # tar 包内路径将是相对路径，不含开头的 /
-          # 如 usr/local/bin/kixdns
-          tar -Jcf ../../os-kixdns-community-${VERSION}.pkg -T filelist.txt
-          # 回到 plugin-src 目录，此时包文件在 plugin-src/os-kixdns-community-${VERSION}.pkg
-          cd ../..
+          tar -Jcf ../os-kixdns-community-${VERSION}.pkg -T filelist.txt
+          cd ..
           ls -lh os-kixdns-community-${VERSION}.pkg
 
       - name: Upload Plugin Package
