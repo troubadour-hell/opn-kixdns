@@ -109,6 +109,7 @@ jobs:
           import hashlib
           import json
 
+          
           meta = {
               "name": "os-kixdns-community",
               "version": "0.1",
@@ -156,7 +157,10 @@ jobs:
           echo "+MANIFEST" > filelist.txt
           # 排除 +MANIFEST 和 filelist.txt 本身
           find . -type f | sed 's|^\./||' | grep -v '^+MANIFEST$' | grep -v '^filelist.txt$' | sort >> filelist.txt
-          tar -Jcf ../os-kixdns-community-${VERSION}.pkg -T filelist.txt
+          # 使用 GNU tar 的 --transform，把所有非以 '+' 开头的文件名前面加上 '/'
+          # 这样：usr/local/bin/kixdns -> /usr/local/bin/kixdns
+          # 而 +MANIFEST / +POST_INSTALL 等仍保持不变
+          tar --transform='s,^[^+],/&,' -Jcf ../os-kixdns-community-${VERSION}.pkg -T filelist.txt
           cd ..
           ls -lh os-kixdns-community-${VERSION}.pkg
 
