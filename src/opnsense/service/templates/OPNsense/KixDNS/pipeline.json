@@ -1,12 +1,12 @@
 {
     "version": "1.0",
     "settings": {
-        "bind_udp": "{{ OPNsense.kixdns.general.bind_udp }}",
-        "bind_tcp": "{{ OPNsense.kixdns.general.bind_tcp }}",
-        "default_upstream": "{{ OPNsense.kixdns.general.default_upstream }}",
-        "upstream_timeout_ms": {{ OPNsense.kixdns.general.upstream_timeout }},
-        "min_ttl": {{ OPNsense.kixdns.general.min_ttl }},
-        "udp_workers": {{ OPNsense.kixdns.general.udp_workers }}
+        "bind_udp": "{{ OPNsense.get('kixdns', {}).get('general', {}).get('bind_udp', '0.0.0.0:5353') }}",
+        "bind_tcp": "{{ OPNsense.get('kixdns', {}).get('general', {}).get('bind_tcp', '0.0.0.0:5353') }}",
+        "default_upstream": "{{ OPNsense.get('kixdns', {}).get('general', {}).get('default_upstream', '1.1.1.1:53') }}",
+        "upstream_timeout_ms": {{ OPNsense.get('kixdns', {}).get('general', {}).get('upstream_timeout', 2000) }},
+        "min_ttl": {{ OPNsense.get('kixdns', {}).get('general', {}).get('min_ttl', 0) }},
+        "udp_workers": {{ OPNsense.get('kixdns', {}).get('general', {}).get('udp_workers', 0) }}
     },
     "pipelines": [
 {% if helpers.exists('OPNsense.kixdns.pipelines.pipeline') %}
