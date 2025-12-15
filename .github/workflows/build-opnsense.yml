@@ -69,7 +69,12 @@ jobs:
           mkdir -p pkgroot
 
           # 拷贝实际要安装的文件树
-          cp -a src/etc src/opnsense src/usr pkgroot/
+          # 注意：OPNsense 的 MVC / service 文件应安装到 /usr/local/opnsense/...
+          # 仓库目录为 src/opnsense/...，这里映射到 pkgroot/usr/local/opnsense/...
+          cp -a src/etc pkgroot/
+          cp -a src/usr pkgroot/
+          mkdir -p pkgroot/usr/local
+          cp -a src/opnsense pkgroot/usr/local/
 
           # 2. 写 +MANIFEST（关键是 arch 字段要与目标系统匹配，这里假定为 FreeBSD 14 amd64）
           cat > pkgroot/+MANIFEST << 'EOF'
