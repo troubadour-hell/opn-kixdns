@@ -107,13 +107,14 @@ jobs:
                   if fname == "+MANIFEST":
                       continue
                   path = os.path.join(root, fname)
-                  rel = os.path.relpath(path, ".")
+                  # pkg manifest 中的 files 键应为相对于 prefix 的路径，且不以 / 开头
+                  rel = os.path.relpath(path, ".").lstrip("./")
                   with open(path, "rb") as f:
                       data = f.read()
                   flatsize += len(data)
                   # FreeBSD pkg 默认使用 sha256 哈希（十六进制）
                   digest = hashlib.sha256(data).hexdigest()
-                  files["/" + rel] = digest
+                  files[rel] = digest
 
           meta["flatsize"] = flatsize
           meta["files"] = files
