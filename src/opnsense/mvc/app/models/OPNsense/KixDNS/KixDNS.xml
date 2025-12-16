@@ -61,7 +61,7 @@
                 </OptionValues>
             </log_level>
             <!-- 可选：直接保存完整的 KixDNS pipeline JSON，供前端可视化编辑器使用 -->
-            <config_json type="TextAreaField">
+            <config_json type="TextField">
                 <Required>N</Required>
                 <default></default>
             </config_json>

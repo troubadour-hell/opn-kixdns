@@ -11,11 +11,13 @@ class SettingsController extends ApiMutableModelControllerBase
 
     public function getAction()
     {
-        // 使用 OPNsense 标准的 getBase 方法，它会自动处理默认值和选项
+        // 使用 OPNsense 标准的 getBase 方法，现在模型应该可以正常加载了
         try {
             $this->logDebug('getAction called');
+            
             // getBase 会自动处理字段的默认值、选项列表等
             $result = $this->getBase('general');
+            $this->logDebug('getAction: getBase returned', array('result_type' => gettype($result)));
             
             // 确保返回的数据有 general 键
             if (!isset($result['general'])) {
@@ -23,42 +25,19 @@ class SettingsController extends ApiMutableModelControllerBase
                 $result = array('general' => $result);
             }
             
-            // 确保空字段使用默认值
-            $defaults = array(
-                'enabled' => '0',
-                'config_path' => '/usr/local/etc/kixdns/pipeline.json',
-                'bind_udp' => '0.0.0.0:5353',
-                'bind_tcp' => '0.0.0.0:5353',
-                'default_upstream' => '1.1.1.1:53',
-                'upstream_timeout' => '2000',
-                'response_jump_limit' => '10',
-                'min_ttl' => '0',
-                'udp_workers' => '0',
-                'udp_pool_size' => '0',
-                'listener_label' => 'default',
-                'debug' => '0',
-                'log_level' => 'info',
-                'config_json' => ''
-            );
-            
-            foreach ($defaults as $key => $defaultValue) {
-                if (!isset($result['general'][$key]) || $result['general'][$key] === '') {
-                    $result['general'][$key] = $defaultValue;
-                    $this->logDebug("getAction: applied default for {$key}", array('value' => $defaultValue));
-                }
-            }
-            
             $this->logDebug('getAction completed', array(
                 'has_result' => !empty($result),
                 'general_keys' => isset($result['general']) ? array_keys($result['general']) : array()
             ));
             return $result;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // 捕获所有错误，包括 Error 和 Exception
             $this->logError('getAction exception', array(
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'class' => get_class($e)
             ));
             // 如果 getBase 失败，返回带默认值的结构
             return array(
@@ -84,35 +63,20 @@ class SettingsController extends ApiMutableModelControllerBase
 
     public function setAction()
     {
-        // 保存 general 段配置（包括服务开关、基础参数以及原始 JSON 等）
+        // 使用 OPNsense 标准的 setBase 方法
         try {
             $post = $this->request->getPost();
             $this->logDebug('setAction called', array('post_keys' => array_keys($post)));
             
-            $mdl = $this->getModel();
-            if (!$mdl) {
-                throw new \Exception('Failed to get model instance');
+            $result = $this->setBase('general');
+            
+            if (!isset($result['result']) || $result['result'] !== 'saved') {
+                $this->logError('setAction failed', $result);
+            } else {
+                $this->logInfo('setAction succeeded');
             }
             
-            $general = $mdl->general;
-            if (!$general) {
-                throw new \Exception('Failed to get general section');
-            }
-            
-            // 更新字段值
-            foreach ($post as $key => $value) {
-                if (isset($general->$key)) {
-                    $general->$key = $value;
-                    $this->logDebug("setAction: set {$key}", array('value' => substr((string)$value, 0, 100)));
-                }
-            }
-            
-            // 保存配置
-            $mdl->serializeToConfig();
-            $this->config->save();
-            
-            $this->logInfo('setAction succeeded');
-            return array('result' => 'saved');
+            return $result;
         } catch (\Exception $e) {
             $this->logError('setAction exception', array(
                 'message' => $e->getMessage(),
