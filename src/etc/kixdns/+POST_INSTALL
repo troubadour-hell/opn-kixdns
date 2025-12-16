@@ -1,5 +1,8 @@
 #!/bin/sh
 
-# Trigger initial setup if needed
-/usr/local/opnsense/mvc/app/models/OPNsense/KixDNS/KixDNS.xml
+# Placeholder post-install script for KixDNS plugin.
+# Currently no special post-install actions are required.
+# This file exists to keep the layout similar to typical OPNsense plugins.
+
+exit 0
 

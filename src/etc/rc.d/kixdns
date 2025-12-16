@@ -15,7 +15,9 @@ load_rc_config $name
 : ${kixdns_config:="/usr/local/etc/kixdns/pipeline.json"}
 
 command="/usr/local/bin/kixdns"
-command_args="--config ${kixdns_config} &"
+command_args="--config ${kixdns_config}"
+
+pidfile="/var/run/${name}.pid"
 
 run_rc_command "$1"
 

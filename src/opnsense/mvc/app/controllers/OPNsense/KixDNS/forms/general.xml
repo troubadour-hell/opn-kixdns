@@ -9,30 +9,35 @@
         <id>general.bind_udp</id>
         <label>Bind UDP</label>
         <type>text</type>
+        <value>0.0.0.0:5353</value>
         <help>Address and port for UDP listener (e.g. 0.0.0.0:5353).</help>
     </field>
     <field>
         <id>general.bind_tcp</id>
         <label>Bind TCP</label>
         <type>text</type>
+        <value>0.0.0.0:5353</value>
         <help>Address and port for TCP listener (e.g. 0.0.0.0:5353).</help>
     </field>
     <field>
         <id>general.default_upstream</id>
         <label>Default Upstream</label>
         <type>text</type>
+        <value>127.0.0.1:53</value>
         <help>Default upstream DNS server (e.g. 1.1.1.1:53).</help>
     </field>
     <field>
         <id>general.upstream_timeout</id>
         <label>Upstream Timeout</label>
         <type>text</type>
+        <value>2000</value>
         <help>Timeout in milliseconds.</help>
     </field>
     <field>
         <id>general.min_ttl</id>
         <label>Min TTL</label>
         <type>text</type>
+        <value>0</value>
         <help>Minimum TTL in seconds.</help>
     </field>
     <field>
@@ -62,6 +67,8 @@
                 <value>error</value>
             </option>
         </options>
+        <!-- 默认选中 Info 级别，确保下拉框有初始值 -->
+        <value>info</value>
     </field>
 </form>
 

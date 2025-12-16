@@ -15,20 +15,23 @@
             "id": "{{ pipe.id }}",
             "rules": [
         {% if helpers.exists('OPNsense.kixdns.rules.rule') %}
+            {% set first_rule = true %}
             {% for rule in helpers.toList('OPNsense.kixdns.rules.rule') %}
                 {% if rule.pipeline_id == pipe.id and rule.enabled == '1' %}
+                {% if not first_rule %},{% endif %}
+                {% set first_rule = false %}
                 {
                     "name": "{{ rule.name }}",
                     "matchers": {{ rule.matchers | default('[]') }},
                     "matcher_operator": "{{ rule.matcher_operator }}",
                     "actions": {{ rule.actions | default('[]') }},
                     "response_matchers": {{ rule.response_matchers | default('[]') }}
-                },
+                }
                 {% endif %}
             {% endfor %}
         {% endif %}
             ]
-        },
+        }{% if not loop.last %},{% endif %}
     {% endfor %}
 {% endif %}
     ],
@@ -39,7 +42,7 @@
             "pipeline": "{{ sel.target_pipeline }}",
             "matchers": {{ sel.matchers | default('[]') }},
             "matcher_operator": "{{ sel.operator }}"
-        },
+        }{% if not loop.last %},{% endif %}
     {% endfor %}
 {% endif %}
     ]

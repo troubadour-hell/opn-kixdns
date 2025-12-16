@@ -1,0 +1,9 @@
+<menu>
+    <Services>
+        <KixDNS VisibleName="KixDNS" cssClass="fa fa-database">
+            <Settings VisibleName="General Settings" order="80" url="/ui/kixdns"/>
+        </KixDNS>
+    </Services>
+</menu>
+
+

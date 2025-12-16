@@ -80,6 +80,13 @@ class SettingsController extends ApiMutableModelControllerBase
         $this->logResult('setPipeline', $result);
         return $result;
     }
+    public function togglePipelineAction($uuid)
+    {
+        $this->logDebug('togglePipelineAction', array('uuid' => $uuid));
+        $result = $this->toggleBase('pipelines.pipeline', $uuid);
+        $this->logResult('togglePipeline', $result);
+        return $result;
+    }
 
     /* Selectors CRUD */
     public function searchSelectorAction()
@@ -111,6 +118,13 @@ class SettingsController extends ApiMutableModelControllerBase
         $this->logDebug('setSelectorAction', array('uuid' => $uuid, 'payload' => $post));
         $result = $this->setBase('selector', 'selectors.selector', $uuid);
         $this->logResult('setSelector', $result);
+        return $result;
+    }
+    public function toggleSelectorAction($uuid)
+    {
+        $this->logDebug('toggleSelectorAction', array('uuid' => $uuid));
+        $result = $this->toggleBase('selectors.selector', $uuid);
+        $this->logResult('toggleSelector', $result);
         return $result;
     }
 
