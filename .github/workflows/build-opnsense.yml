@@ -88,6 +88,10 @@ jobs:
           cp src/etc/rc.d/kixdns pkgroot/etc/rc.d/kixdns
           chmod +x pkgroot/etc/rc.d/kixdns
 
+          # plugins.inc.d service definition -> /usr/local/etc/inc/plugins.inc.d/
+          mkdir -p pkgroot/etc/inc/plugins.inc.d
+          cp src/etc/inc/plugins.inc.d/kixdns.inc pkgroot/etc/inc/plugins.inc.d/kixdns.inc
+
           cp -a src/opnsense pkgroot/
 
           mkdir -p final_pkg_root/usr/local
