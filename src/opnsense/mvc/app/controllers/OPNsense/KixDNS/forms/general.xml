@@ -39,6 +39,29 @@
         <id>general.log_level</id>
         <label>Log Level</label>
         <type>dropdown</type>
+        <help>Select the logging verbosity.</help>
+        <options>
+            <option>
+                <name>Trace</name>
+                <value>trace</value>
+            </option>
+            <option>
+                <name>Debug</name>
+                <value>debug</value>
+            </option>
+            <option>
+                <name>Info</name>
+                <value>info</value>
+            </option>
+            <option>
+                <name>Warning</name>
+                <value>warn</value>
+            </option>
+            <option>
+                <name>Error</name>
+                <value>error</value>
+            </option>
+        </options>
     </field>
 </form>
 
