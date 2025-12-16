@@ -15,10 +15,15 @@ class SettingsController extends ApiMutableModelControllerBase
         try {
             $this->logDebug('getAction called');
             $result = $this->getBase('general');
-            $this->logDebug('getAction result', $result);
+            $this->logDebug('getAction completed', array('has_result' => !empty($result)));
             return $result;
         } catch (\Exception $e) {
-            $this->logError('getAction exception', array('message' => $e->getMessage(), 'trace' => $e->getTraceAsString()));
+            $this->logError('getAction exception', array(
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ));
             return array('result' => 'failed', 'message' => $e->getMessage());
         }
     }
@@ -289,7 +294,8 @@ class SettingsController extends ApiMutableModelControllerBase
     private function logToFile(string $level, string $message, array $context = array()): void
     {
         $logFile = '/var/log/kixdns.log';
-        $line = sprintf('[%s] [%s] %s', date('c'), $level, $message);
+        $timestamp = date('Y-m-d H:i:s');
+        $line = sprintf('[%s] [%s] %s', $timestamp, $level, $message);
         if (!empty($context)) {
             $line .= ' ' . json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
@@ -301,8 +307,16 @@ class SettingsController extends ApiMutableModelControllerBase
             @mkdir($logDir, 0755, true);
         }
         
-        // 写入日志文件，同时输出到 PHP 错误日志以便调试
-        @file_put_contents($logFile, $line, FILE_APPEND);
-        error_log("KixDNS [{$level}] {$message}" . (!empty($context) ? ' ' . json_encode($context) : ''));
+        // 写入日志文件
+        $written = @file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
+        
+        // 如果写入失败，尝试输出到 PHP 错误日志
+        if ($written === false) {
+            $errorMsg = "KixDNS [{$level}] {$message}";
+            if (!empty($context)) {
+                $errorMsg .= ' ' . json_encode($context, JSON_UNESCAPED_UNICODE);
+            }
+            error_log($errorMsg);
+        }
     }
 }
