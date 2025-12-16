@@ -11,40 +11,47 @@ class SettingsController extends ApiMutableModelControllerBase
 
     public function getAction()
     {
-        // 目前仅返回 general 段（服务开关、基础参数以及原始 JSON 等）
+        // 使用 OPNsense 标准的 getBase 方法，它会自动处理默认值和选项
         try {
             $this->logDebug('getAction called');
-            $mdl = $this->getModel();
-            if (!$mdl) {
-                throw new \Exception('Failed to get model instance');
+            // getBase 会自动处理字段的默认值、选项列表等
+            $result = $this->getBase('general');
+            
+            // 确保返回的数据有 general 键
+            if (!isset($result['general'])) {
+                $this->logDebug('getAction: result missing general key, wrapping', array('result_keys' => array_keys($result)));
+                $result = array('general' => $result);
             }
             
-            $general = $mdl->general;
-            if (!$general) {
-                throw new \Exception('Failed to get general section');
-            }
-            
-            // 手动构建返回数据 - 使用 OPNsense 标准方式
-            $result = array(
-                'general' => array()
+            // 确保空字段使用默认值
+            $defaults = array(
+                'enabled' => '0',
+                'config_path' => '/usr/local/etc/kixdns/pipeline.json',
+                'bind_udp' => '0.0.0.0:5353',
+                'bind_tcp' => '0.0.0.0:5353',
+                'default_upstream' => '1.1.1.1:53',
+                'upstream_timeout' => '2000',
+                'response_jump_limit' => '10',
+                'min_ttl' => '0',
+                'udp_workers' => '0',
+                'udp_pool_size' => '0',
+                'listener_label' => 'default',
+                'debug' => '0',
+                'log_level' => 'info',
+                'config_json' => ''
             );
             
-            // 获取所有字段名（从 XML 定义中已知的字段）
-            $fields = array(
-                'enabled', 'config_path', 'bind_udp', 'bind_tcp', 'default_upstream',
-                'upstream_timeout', 'response_jump_limit', 'min_ttl', 'udp_workers',
-                'udp_pool_size', 'listener_label', 'debug', 'log_level', 'config_json'
-            );
-            
-            foreach ($fields as $field) {
-                if (isset($general->$field)) {
-                    $result['general'][$field] = (string)$general->$field;
-                } else {
-                    $result['general'][$field] = '';
+            foreach ($defaults as $key => $defaultValue) {
+                if (!isset($result['general'][$key]) || $result['general'][$key] === '') {
+                    $result['general'][$key] = $defaultValue;
+                    $this->logDebug("getAction: applied default for {$key}", array('value' => $defaultValue));
                 }
             }
             
-            $this->logDebug('getAction completed', array('fields_count' => count($result['general'])));
+            $this->logDebug('getAction completed', array(
+                'has_result' => !empty($result),
+                'general_keys' => isset($result['general']) ? array_keys($result['general']) : array()
+            ));
             return $result;
         } catch (\Exception $e) {
             $this->logError('getAction exception', array(
@@ -53,7 +60,25 @@ class SettingsController extends ApiMutableModelControllerBase
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ));
-            return array('result' => 'failed', 'message' => $e->getMessage());
+            // 如果 getBase 失败，返回带默认值的结构
+            return array(
+                'general' => array(
+                    'enabled' => '0',
+                    'config_path' => '/usr/local/etc/kixdns/pipeline.json',
+                    'bind_udp' => '0.0.0.0:5353',
+                    'bind_tcp' => '0.0.0.0:5353',
+                    'default_upstream' => '1.1.1.1:53',
+                    'upstream_timeout' => '2000',
+                    'response_jump_limit' => '10',
+                    'min_ttl' => '0',
+                    'udp_workers' => '0',
+                    'udp_pool_size' => '0',
+                    'listener_label' => 'default',
+                    'debug' => '0',
+                    'log_level' => 'info',
+                    'config_json' => ''
+                )
+            );
         }
     }
 
