@@ -1,0 +1,15 @@
+<form>
+    <field>
+        <id>pipeline.id</id>
+        <label>Pipeline ID</label>
+        <type>text</type>
+        <help>Unique identifier for this pipeline (e.g. main, adblock).</help>
+    </field>
+    <field>
+        <id>pipeline.description</id>
+        <label>Description</label>
+        <type>text</type>
+    </field>
+</form>
+
+

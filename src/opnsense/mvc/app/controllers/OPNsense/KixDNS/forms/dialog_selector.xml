@@ -1,0 +1,26 @@
+<form>
+    <field>
+        <id>selector.target_pipeline</id>
+        <label>Target Pipeline</label>
+        <type>dropdown</type>
+        <help>Select the pipeline to route traffic to.</help>
+    </field>
+    <field>
+        <id>selector.matchers</id>
+        <label>Matchers (JSON)</label>
+        <type>text</type>
+        <help>JSON array of matchers. Example: [{"type":"client_ip","cidr":"10.0.0.0/8"}]</help>
+    </field>
+    <field>
+        <id>selector.operator</id>
+        <label>Operator</label>
+        <type>dropdown</type>
+    </field>
+    <field>
+        <id>selector.description</id>
+        <label>Description</label>
+        <type>text</type>
+    </field>
+</form>
+
+

@@ -1,0 +1,45 @@
+<form>
+    <field>
+        <id>general.enabled</id>
+        <label>Enable KixDNS</label>
+        <type>checkbox</type>
+        <help>Enable the KixDNS service.</help>
+    </field>
+    <field>
+        <id>general.bind_udp</id>
+        <label>Bind UDP</label>
+        <type>text</type>
+        <help>Address and port for UDP listener (e.g. 0.0.0.0:5353).</help>
+    </field>
+    <field>
+        <id>general.bind_tcp</id>
+        <label>Bind TCP</label>
+        <type>text</type>
+        <help>Address and port for TCP listener (e.g. 0.0.0.0:5353).</help>
+    </field>
+    <field>
+        <id>general.default_upstream</id>
+        <label>Default Upstream</label>
+        <type>text</type>
+        <help>Default upstream DNS server (e.g. 1.1.1.1:53).</help>
+    </field>
+    <field>
+        <id>general.upstream_timeout</id>
+        <label>Upstream Timeout</label>
+        <type>text</type>
+        <help>Timeout in milliseconds.</help>
+    </field>
+    <field>
+        <id>general.min_ttl</id>
+        <label>Min TTL</label>
+        <type>text</type>
+        <help>Minimum TTL in seconds.</help>
+    </field>
+    <field>
+        <id>general.log_level</id>
+        <label>Log Level</label>
+        <type>dropdown</type>
+    </field>
+</form>
+
+
