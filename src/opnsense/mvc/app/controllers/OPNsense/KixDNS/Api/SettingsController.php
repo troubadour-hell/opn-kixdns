@@ -14,8 +14,37 @@ class SettingsController extends ApiMutableModelControllerBase
         // 目前仅返回 general 段（服务开关、基础参数以及原始 JSON 等）
         try {
             $this->logDebug('getAction called');
-            $result = $this->getBase('general');
-            $this->logDebug('getAction completed', array('has_result' => !empty($result)));
+            $mdl = $this->getModel();
+            if (!$mdl) {
+                throw new \Exception('Failed to get model instance');
+            }
+            
+            $general = $mdl->general;
+            if (!$general) {
+                throw new \Exception('Failed to get general section');
+            }
+            
+            // 手动构建返回数据 - 使用 OPNsense 标准方式
+            $result = array(
+                'general' => array()
+            );
+            
+            // 获取所有字段名（从 XML 定义中已知的字段）
+            $fields = array(
+                'enabled', 'config_path', 'bind_udp', 'bind_tcp', 'default_upstream',
+                'upstream_timeout', 'response_jump_limit', 'min_ttl', 'udp_workers',
+                'udp_pool_size', 'listener_label', 'debug', 'log_level', 'config_json'
+            );
+            
+            foreach ($fields as $field) {
+                if (isset($general->$field)) {
+                    $result['general'][$field] = (string)$general->$field;
+                } else {
+                    $result['general'][$field] = '';
+                }
+            }
+            
+            $this->logDebug('getAction completed', array('fields_count' => count($result['general'])));
             return $result;
         } catch (\Exception $e) {
             $this->logError('getAction exception', array(
@@ -31,19 +60,43 @@ class SettingsController extends ApiMutableModelControllerBase
     public function setAction()
     {
         // 保存 general 段配置（包括服务开关、基础参数以及原始 JSON 等）
-        $post = $this->request->getPost();
-        $this->logDebug('setAction payload', $post);
-
-        $result = $this->setBase('general');
-
-        // 方便调试：当保存失败时把详细结果打到系统日志
-        if (!isset($result['result']) || $result['result'] !== 'saved') {
-            $this->logError('setAction failed', $result);
-        } else {
-            $this->logDebug('setAction succeeded');
+        try {
+            $post = $this->request->getPost();
+            $this->logDebug('setAction called', array('post_keys' => array_keys($post)));
+            
+            $mdl = $this->getModel();
+            if (!$mdl) {
+                throw new \Exception('Failed to get model instance');
+            }
+            
+            $general = $mdl->general;
+            if (!$general) {
+                throw new \Exception('Failed to get general section');
+            }
+            
+            // 更新字段值
+            foreach ($post as $key => $value) {
+                if (isset($general->$key)) {
+                    $general->$key = $value;
+                    $this->logDebug("setAction: set {$key}", array('value' => substr((string)$value, 0, 100)));
+                }
+            }
+            
+            // 保存配置
+            $mdl->serializeToConfig();
+            $this->config->save();
+            
+            $this->logInfo('setAction succeeded');
+            return array('result' => 'saved');
+        } catch (\Exception $e) {
+            $this->logError('setAction exception', array(
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ));
+            return array('result' => 'failed', 'message' => $e->getMessage());
         }
-
-        return $result;
     }
 
     public function reconfigureAction()
