@@ -12,8 +12,15 @@ class SettingsController extends ApiMutableModelControllerBase
     public function getAction()
     {
         // 目前仅返回 general 段（服务开关、基础参数以及原始 JSON 等）
-        $this->logDebug('getAction called');
-        return $this->getBase('general');
+        try {
+            $this->logDebug('getAction called');
+            $result = $this->getBase('general');
+            $this->logDebug('getAction result', $result);
+            return $result;
+        } catch (\Exception $e) {
+            $this->logError('getAction exception', array('message' => $e->getMessage(), 'trace' => $e->getTraceAsString()));
+            return array('result' => 'failed', 'message' => $e->getMessage());
+        }
     }
 
     public function setAction()
@@ -54,12 +61,39 @@ class SettingsController extends ApiMutableModelControllerBase
      */
     public function getConfigJsonAction()
     {
-        $mdl = $this->getModel();
-        $general = $mdl->general;
-        $configJson = $general->config_json;
-        return array(
-            'config_json' => $configJson ? $configJson->__toString() : ''
-        );
+        try {
+            $this->logDebug('getConfigJsonAction called');
+            $mdl = $this->getModel();
+            if (!$mdl) {
+                throw new \Exception('Failed to get model');
+            }
+            $general = $mdl->general;
+            if (!$general) {
+                throw new \Exception('Failed to get general section');
+            }
+            
+            $configJson = '';
+            if (isset($general->config_json) && $general->config_json) {
+                $configJson = $general->config_json->__toString();
+            }
+            
+            $this->logDebug('getConfigJsonAction success', array('has_config' => !empty($configJson)));
+            return array(
+                'config_json' => $configJson
+            );
+        } catch (\Exception $e) {
+            $this->logError('getConfigJsonAction exception', array(
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ));
+            return array(
+                'result' => 'failed',
+                'message' => $e->getMessage(),
+                'config_json' => ''
+            );
+        }
     }
 
     /**
@@ -257,10 +291,18 @@ class SettingsController extends ApiMutableModelControllerBase
         $logFile = '/var/log/kixdns.log';
         $line = sprintf('[%s] [%s] %s', date('c'), $level, $message);
         if (!empty($context)) {
-            $line .= ' ' . json_encode($context);
+            $line .= ' ' . json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
         $line .= PHP_EOL;
-        // 使用 @ 避免在日志目录不存在或权限问题时再抛出警告
+        
+        // 确保日志目录存在
+        $logDir = dirname($logFile);
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0755, true);
+        }
+        
+        // 写入日志文件，同时输出到 PHP 错误日志以便调试
         @file_put_contents($logFile, $line, FILE_APPEND);
+        error_log("KixDNS [{$level}] {$message}" . (!empty($context) ? ' ' . json_encode($context) : ''));
     }
 }
