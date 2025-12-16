@@ -6,6 +6,13 @@
         <help>Enable the KixDNS service.</help>
     </field>
     <field>
+        <id>general.config_path</id>
+        <label>Config file path</label>
+        <type>text</type>
+        <value>/usr/local/etc/kixdns/pipeline.json</value>
+        <help>Path to the KixDNS JSON configuration file.</help>
+    </field>
+    <field>
         <id>general.bind_udp</id>
         <label>Bind UDP</label>
         <type>text</type>
@@ -23,7 +30,7 @@
         <id>general.default_upstream</id>
         <label>Default Upstream</label>
         <type>text</type>
-        <value>127.0.0.1:53</value>
+        <value>1.1.1.1:53</value>
         <help>Default upstream DNS server (e.g. 1.1.1.1:53).</help>
     </field>
     <field>
@@ -34,11 +41,45 @@
         <help>Timeout in milliseconds.</help>
     </field>
     <field>
+        <id>general.response_jump_limit</id>
+        <label>Response jump limit</label>
+        <type>text</type>
+        <value>10</value>
+        <help>Maximum number of response jumps when processing pipelines.</help>
+    </field>
+    <field>
         <id>general.min_ttl</id>
         <label>Min TTL</label>
         <type>text</type>
         <value>0</value>
         <help>Minimum TTL in seconds.</help>
+    </field>
+    <field>
+        <id>general.udp_workers</id>
+        <label>UDP Workers</label>
+        <type>text</type>
+        <value>0</value>
+        <help>Number of UDP worker threads (0 means auto).</help>
+    </field>
+    <field>
+        <id>general.udp_pool_size</id>
+        <label>UDP connection pool size</label>
+        <type>text</type>
+        <value>0</value>
+        <help>UDP connection pool size (0 disables pooling).</help>
+    </field>
+    <field>
+        <id>general.listener_label</id>
+        <label>Listener label</label>
+        <type>text</type>
+        <value>default</value>
+        <help>Listener instance label used for pipeline selection (matches --listener-label).</help>
+    </field>
+    <field>
+        <id>general.debug</id>
+        <label>Debug logging</label>
+        <type>checkbox</type>
+        <help>Enable debug logging for the KixDNS process (--debug).</help>
     </field>
     <field>
         <id>general.log_level</id>
@@ -67,7 +108,6 @@
                 <value>error</value>
             </option>
         </options>
-        <!-- 默认选中 Info 级别，确保下拉框有初始值 -->
         <value>info</value>
     </field>
 </form>

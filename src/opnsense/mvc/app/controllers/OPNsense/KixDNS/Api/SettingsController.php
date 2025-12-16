@@ -11,14 +11,14 @@ class SettingsController extends ApiMutableModelControllerBase
 
     public function getAction()
     {
-        // 调试：记录一次获取配置的行为（不打印完整内容，避免日志过大）
+        // 目前仅返回 general 段（服务开关、基础参数以及原始 JSON 等）
         $this->logDebug('getAction called');
-        return $this->getBase('general', 'pipelines', 'rules', 'selectors');
+        return $this->getBase('general');
     }
 
     public function setAction()
     {
-        // 目前前端只提交 general 段配置，这里只保存 general，pipelines/rules/selectors 走各自 CRUD
+        // 保存 general 段配置（包括服务开关、基础参数以及原始 JSON 等）
         $post = $this->request->getPost();
         $this->logDebug('setAction payload', $post);
 
@@ -38,12 +38,61 @@ class SettingsController extends ApiMutableModelControllerBase
     {
         $result = array("status" => "failed");
         if ($this->request->isPost()) {
-            $this->logInfo('reconfigureAction requested, triggering template reload and service reload');
+            $this->logInfo('reconfigureAction requested, triggering template reload and service restart');
             $backend = new \OPNsense\Core\Backend();
             $backend->configdRun('template reload OPNsense/KixDNS');
-            $backend->configdRun('kixdns reload');
+            // 使用 restart 动作，确保应用新配置（actions_kixdns.conf 中已定义）
+            $backend->configdRun('kixdns restart');
             $result["status"] = "ok";
             $this->logInfo('reconfigureAction completed');
+        }
+        return $result;
+    }
+
+    /**
+     * Get config JSON for editor
+     */
+    public function getConfigJsonAction()
+    {
+        $mdl = $this->getModel();
+        $general = $mdl->general;
+        $configJson = $general->config_json;
+        return array(
+            'config_json' => $configJson ? $configJson->__toString() : ''
+        );
+    }
+
+    /**
+     * Save config JSON from editor
+     */
+    public function saveConfigJsonAction()
+    {
+        $result = array("result" => "failed");
+        if ($this->request->isPost()) {
+            $post = $this->request->getPost();
+            $this->logDebug('saveConfigJsonAction payload', $post);
+            
+            $mdl = $this->getModel();
+            $general = $mdl->general;
+            
+            if (isset($post['config_json'])) {
+                // Validate JSON
+                $jsonStr = $post['config_json'];
+                $decoded = json_decode($jsonStr, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $result['message'] = 'Invalid JSON: ' . json_last_error_msg();
+                    return $result;
+                }
+                
+                $general->config_json = $jsonStr;
+                $mdl->serializeToConfig();
+                $this->config->save();
+                
+                $result["result"] = "saved";
+                $this->logInfo('saveConfigJsonAction succeeded');
+            } else {
+                $result['message'] = 'Missing config_json parameter';
+            }
         }
         return $result;
     }

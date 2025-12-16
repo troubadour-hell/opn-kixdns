@@ -6,6 +6,8 @@
         "default_upstream": "{{ OPNsense.get('kixdns', {}).get('general', {}).get('default_upstream', '1.1.1.1:53') }}",
         "upstream_timeout_ms": {{ OPNsense.get('kixdns', {}).get('general', {}).get('upstream_timeout', 2000) }},
         "min_ttl": {{ OPNsense.get('kixdns', {}).get('general', {}).get('min_ttl', 0) }},
+        "response_jump_limit": {{ OPNsense.get('kixdns', {}).get('general', {}).get('response_jump_limit', 10) }},
+        "udp_pool_size": {{ OPNsense.get('kixdns', {}).get('general', {}).get('udp_pool_size', 0) }},
         "udp_workers": {{ OPNsense.get('kixdns', {}).get('general', {}).get('udp_workers', 0) }}
     },
     "pipelines": [

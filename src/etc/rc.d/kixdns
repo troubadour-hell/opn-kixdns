@@ -15,7 +15,21 @@ load_rc_config $name
 : ${kixdns_config:="/usr/local/etc/kixdns/pipeline.json"}
 
 command="/usr/local/bin/kixdns"
-command_args="--config ${kixdns_config}"
+
+# 额外 CLI 参数：listener label / debug / udp-workers
+: ${kixdns_listener_label:="default"}
+: ${kixdns_debug:="NO"}
+: ${kixdns_udp_workers:="0"}
+
+extra_args="--config ${kixdns_config} --listener-label ${kixdns_listener_label}"
+if [ "${kixdns_debug}" = "YES" ]; then
+    extra_args="${extra_args} --debug"
+fi
+if [ "${kixdns_udp_workers}" != "0" ]; then
+    extra_args="${extra_args} --udp-workers ${kixdns_udp_workers}"
+fi
+
+command_args="${extra_args}"
 
 pidfile="/var/run/${name}.pid"
 
