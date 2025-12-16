@@ -122,6 +122,11 @@ $(document).ready(function() {
     $("#saveAct").click(function(){
         saveFormToEndpoint(url="/api/kixdns/settings/set", formid='frm_general_settings', callback_ok=function(){
             $("#saveAct").blur();
+            // Reload form data after save
+            mapDataToFormUI(data_get_map).done(function(data){
+                formatTokenizersUI();
+                $('.selectpicker').selectpicker('refresh');
+            });
         });
     });
 
