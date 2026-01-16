@@ -1,52 +1,37 @@
+{#
+ # KixDNS Pipeline Configuration Template
+ # Copyright (C) 2025 KixDNS Project
+ # All rights reserved.
+ #
+ # Strategy: If config_json is set, output it directly.
+ # Otherwise, output a minimal default configuration.
+ #}
+{% if helpers.exists('OPNsense.kixdns.general.config_json') and OPNsense.kixdns.general.config_json|default('') != '' %}
+{{ OPNsense.kixdns.general.config_json }}
+{% else %}
 {
     "version": "1.0",
     "settings": {
-        "bind_udp": "{{ OPNsense.get('kixdns', {}).get('general', {}).get('bind_udp', '0.0.0.0:5353') }}",
-        "bind_tcp": "{{ OPNsense.get('kixdns', {}).get('general', {}).get('bind_tcp', '0.0.0.0:5353') }}",
-        "default_upstream": "{{ OPNsense.get('kixdns', {}).get('general', {}).get('default_upstream', '1.1.1.1:53') }}",
-        "upstream_timeout_ms": {{ OPNsense.get('kixdns', {}).get('general', {}).get('upstream_timeout', 2000) }},
-        "min_ttl": {{ OPNsense.get('kixdns', {}).get('general', {}).get('min_ttl', 0) }},
-        "response_jump_limit": {{ OPNsense.get('kixdns', {}).get('general', {}).get('response_jump_limit', 10) }},
-        "udp_pool_size": {{ OPNsense.get('kixdns', {}).get('general', {}).get('udp_pool_size', 0) }},
-        "udp_workers": {{ OPNsense.get('kixdns', {}).get('general', {}).get('udp_workers', 0) }}
+        "bind_udp": "{{ OPNsense.kixdns.general.bind_udp|default('0.0.0.0:5353') }}",
+        "bind_tcp": "{{ OPNsense.kixdns.general.bind_tcp|default('0.0.0.0:5353') }}",
+        "default_upstream": "{{ OPNsense.kixdns.general.default_upstream|default('1.1.1.1:53') }}",
+        "upstream_timeout_ms": {{ OPNsense.kixdns.general.upstream_timeout|default('2000') }},
+        "min_ttl": {{ OPNsense.kixdns.general.min_ttl|default('0') }},
+        "response_jump_limit": {{ OPNsense.kixdns.general.response_jump_limit|default('10') }},
+        "udp_pool_size": {{ OPNsense.kixdns.general.udp_pool_size|default('0') }}
     },
+    "pipeline_select": [],
     "pipelines": [
-{% if helpers.exists('OPNsense.kixdns.pipelines.pipeline') %}
-    {% for pipe in helpers.toList('OPNsense.kixdns.pipelines.pipeline') %}
         {
-            "id": "{{ pipe.id }}",
+            "id": "main",
             "rules": [
-        {% if helpers.exists('OPNsense.kixdns.rules.rule') %}
-            {% set first_rule = true %}
-            {% for rule in helpers.toList('OPNsense.kixdns.rules.rule') %}
-                {% if rule.pipeline_id == pipe.id and rule.enabled == '1' %}
-                {% if not first_rule %},{% endif %}
-                {% set first_rule = false %}
                 {
-                    "name": "{{ rule.name }}",
-                    "matchers": {{ rule.matchers | default('[]') }},
-                    "matcher_operator": "{{ rule.matcher_operator }}",
-                    "actions": {{ rule.actions | default('[]') }},
-                    "response_matchers": {{ rule.response_matchers | default('[]') }}
+                    "name": "default_forward",
+                    "matchers": [{ "type": "any" }],
+                    "actions": [{ "type": "forward", "upstream": null }]
                 }
-                {% endif %}
-            {% endfor %}
-        {% endif %}
             ]
-        }{% if not loop.last %},{% endif %}
-    {% endfor %}
-{% endif %}
-    ],
-    "pipeline_select": [
-{% if helpers.exists('OPNsense.kixdns.selectors.selector') %}
-    {% for sel in helpers.toList('OPNsense.kixdns.selectors.selector') %}
-        {
-            "pipeline": "{{ sel.target_pipeline }}",
-            "matchers": {{ sel.matchers | default('[]') }},
-            "matcher_operator": "{{ sel.operator }}"
-        }{% if not loop.last %},{% endif %}
-    {% endfor %}
-{% endif %}
+        }
     ]
 }
-
+{% endif %}

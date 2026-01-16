@@ -60,71 +60,11 @@
                     <error>Error</error>
                 </OptionValues>
             </log_level>
-            <!-- 可选：直接保存完整的 KixDNS pipeline JSON，供前端可视化编辑器使用 -->
+            <!-- Full KixDNS pipeline JSON configuration, managed by the visual editor -->
             <config_json type="TextField">
                 <Required>N</Required>
                 <default></default>
             </config_json>
         </general>
-        <pipelines>
-            <pipeline type="ArrayField">
-                <id type="TextField">
-                    <Required>Y</Required>
-                    <Unique>Y</Unique>
-                </id>
-                <description type="TextField"/>
-            </pipeline>
-        </pipelines>
-        <rules>
-             <rule type="ArrayField">
-                <pipeline_id type="TextField">
-                    <Required>Y</Required>
-                </pipeline_id>
-                <name type="TextField">
-                    <Required>Y</Required>
-                </name>
-                <enabled type="BooleanField">
-                    <default>1</default>
-                </enabled>
-                <!-- Complex structures serialized as JSON strings for simplicity in first iteration -->
-                <!-- Ideally these would be nested ArrayFields but UI implementation is complex -->
-                <matchers type="TextField">
-                    <default>[]</default>
-                </matchers>
-                <matcher_operator type="OptionField">
-                    <default>and</default>
-                    <OptionValues>
-                        <and>AND</and>
-                        <or>OR</or>
-                        <not>NOT</not>
-                    </OptionValues>
-                </matcher_operator>
-                <actions type="TextField">
-                    <default>[]</default>
-                </actions>
-                <response_matchers type="TextField">
-                    <default>[]</default>
-                </response_matchers>
-             </rule>
-        </rules>
-        <selectors>
-            <selector type="ArrayField">
-                <target_pipeline type="TextField">
-                    <Required>Y</Required>
-                </target_pipeline>
-                <matchers type="TextField">
-                     <default>[]</default>
-                </matchers>
-                <operator type="OptionField">
-                    <default>and</default>
-                     <OptionValues>
-                        <and>AND</and>
-                        <or>OR</or>
-                    </OptionValues>
-                </operator>
-                <description type="TextField"/>
-            </selector>
-        </selectors>
     </items>
 </model>
-

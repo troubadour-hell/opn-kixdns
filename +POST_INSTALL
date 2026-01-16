@@ -1,5 +1,14 @@
 #!/bin/sh
 
-# Trigger initial setup if needed
-/usr/local/opnsense/mvc/app/models/OPNsense/KixDNS/KixDNS.xml
+# KixDNS Post-Install Script
 
+# Create config directory if it doesn't exist
+mkdir -p /usr/local/etc/kixdns
+
+# Make rc.d script executable
+chmod +x /usr/local/etc/rc.d/kixdns
+
+# Generate initial rc.conf.d settings
+/usr/local/etc/rc.configure_plugins
+
+exit 0
