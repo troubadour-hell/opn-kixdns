@@ -119,31 +119,19 @@ class SettingsController extends ApiMutableModelControllerBase
         $result = array("status" => "failed");
         if ($this->request->isPost()) {
             try {
-                // Generate /etc/rc.conf.d/kixdns
-                if (function_exists('kixdns_configure_do')) {
-                    kixdns_configure_do();
-                    $this->logDebug('reconfigureAction: kixdns_configure_do() called');
-                } else {
-                    // Manually include and call
-                    $incFile = '/usr/local/etc/inc/plugins.inc.d/kixdns.inc';
-                    if (file_exists($incFile)) {
-                        include_once($incFile);
-                        if (function_exists('kixdns_configure_do')) {
-                            kixdns_configure_do();
-                            $this->logDebug('reconfigureAction: kixdns_configure_do() called after include');
-                        }
-                    }
-                }
-                
                 $backend = new \OPNsense\Core\Backend();
                 
-                // Reload templates
-                $backend->configdRun('template reload OPNsense/KixDNS');
-                $this->logDebug('reconfigureAction: template reload done');
+                // Reload templates first - this generates pipeline.json from config
+                $templateResult = trim($backend->configdRun('template reload OPNsense/KixDNS'));
+                $this->logDebug('reconfigureAction: template reload done', array('result' => $templateResult));
+                
+                // Use configd to run the configure action which handles rc.conf.d generation
+                $configureResult = trim($backend->configdRun('kixdns configure'));
+                $this->logDebug('reconfigureAction: configure done', array('result' => $configureResult));
                 
                 // Restart service
-                $backend->configdRun('kixdns restart');
-                $this->logDebug('reconfigureAction: kixdns restart done');
+                $restartResult = trim($backend->configdRun('kixdns restart'));
+                $this->logDebug('reconfigureAction: kixdns restart done', array('result' => $restartResult));
                 
                 $result["status"] = "ok";
             } catch (\Exception $e) {
