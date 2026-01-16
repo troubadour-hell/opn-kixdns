@@ -25,7 +25,7 @@
                 </OptionValues>
             </log_level>
             <!-- Full KixDNS pipeline JSON configuration, managed by the Pipeline Editor -->
-            <config_json type="TextareaField">
+            <config_json type="TextField">
                 <Required>N</Required>
                 <default></default>
             </config_json>

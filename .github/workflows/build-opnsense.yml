@@ -158,3 +158,4 @@ jobs:
         with:
           name: os-kixdns-community-package
           path: "plugin-src/os-kixdns-community-*.pkg"
+          compression-level: 0
