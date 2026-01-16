@@ -533,19 +533,26 @@ var KixDNSEditor = (function($) {
             method: 'GET',
             dataType: 'json',
             success: function(data) {
-                if (data.config_json) {
+                console.log('Load response:', data);
+                if (data.config_json && data.config_json.trim() !== '') {
                     try {
-                        config = JSON.parse(data.config_json);
-                        if (!config.settings) config.settings = {};
-                        if (!config.pipeline_select) config.pipeline_select = [];
-                        if (!config.pipelines) config.pipelines = [];
+                        var parsed = JSON.parse(data.config_json);
+                        // Merge with defaults
+                        config.version = parsed.version || "1.0";
+                        config.settings = $.extend({}, config.settings, parsed.settings || {});
+                        config.pipeline_select = parsed.pipeline_select || [];
+                        config.pipelines = parsed.pipelines || [];
+                        console.log('Loaded config:', config);
                     } catch(e) {
                         console.error('Parse error:', e);
                     }
+                } else {
+                    console.log('No saved config, using defaults');
                 }
                 render();
             },
-            error: function() {
+            error: function(xhr, status, err) {
+                console.error('Load error:', err);
                 render();
             }
         });
@@ -553,19 +560,29 @@ var KixDNSEditor = (function($) {
 
     function save(callback) {
         collectFromUI();
+        var jsonData = toJson();
+        console.log('Saving config:', jsonData);
         $.ajax({
             url: '/api/kixdns/settings/saveConfigJson',
             method: 'POST',
-            data: { config_json: toJson() },
+            data: { config_json: jsonData },
             dataType: 'json',
             success: function(data) {
+                console.log('Save response:', data);
                 if (data.result === 'saved') {
+                    BootstrapDialog.show({
+                        type: BootstrapDialog.TYPE_SUCCESS,
+                        title: 'Success',
+                        message: 'Configuration saved.',
+                        buttons: [{ label: 'Close', action: function(d) { d.close(); } }]
+                    });
                     if (callback) callback();
                 } else {
                     alert('Save failed: ' + (data.message || 'Unknown error'));
                 }
             },
             error: function(xhr, status, err) {
+                console.error('Save error:', xhr.responseText);
                 alert('Save error: ' + err);
             }
         });
@@ -758,15 +775,8 @@ var KixDNSEditor = (function($) {
     });
 
     $('#btn-save-config').click(function() {
-        save(function() {
-            BootstrapDialog.show({
-                type: BootstrapDialog.TYPE_SUCCESS,
-                title: 'Success',
-                message: 'Configuration saved.',
-                buttons: [{ label: 'Close', action: function(d) { d.close(); } }]
-        });
+        save();
     });
-});
 
     $('#btn-apply-config').click(apply);
 

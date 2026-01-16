@@ -124,12 +124,14 @@ class SettingsController extends ApiMutableModelControllerBase
             $mdl = $this->getModel();
             $configJson = '';
             
-            if (isset($mdl->general->config_json)) {
+            if ($mdl && isset($mdl->general) && isset($mdl->general->config_json)) {
                 $configJson = (string)$mdl->general->config_json;
             }
             
+            $this->logDebug('getConfigJsonAction', array('length' => strlen($configJson)));
             return array('config_json' => $configJson);
         } catch (\Exception $e) {
+            $this->logError('getConfigJsonAction exception', array('message' => $e->getMessage()));
             return array('result' => 'failed', 'message' => $e->getMessage(), 'config_json' => '');
         }
     }
@@ -146,14 +148,22 @@ class SettingsController extends ApiMutableModelControllerBase
             return $result;
         }
         
-        $post = $this->request->getPost();
-        
-        if (!isset($post['config_json'])) {
-            $result['message'] = 'Missing config_json parameter';
-            return $result;
+        // Get POST data - try both methods
+        $jsonStr = $this->request->getPost('config_json');
+        if (empty($jsonStr)) {
+            $post = $this->request->getPost();
+            $jsonStr = isset($post['config_json']) ? $post['config_json'] : null;
         }
         
-        $jsonStr = $post['config_json'];
+        $this->logDebug('saveConfigJsonAction received', array(
+            'length' => $jsonStr ? strlen($jsonStr) : 0,
+            'preview' => $jsonStr ? substr($jsonStr, 0, 100) : 'null'
+        ));
+        
+        if (empty($jsonStr)) {
+            $result['message'] = 'Missing or empty config_json parameter';
+            return $result;
+        }
         
         // Validate JSON
         $decoded = json_decode($jsonStr, true);
@@ -168,6 +178,7 @@ class SettingsController extends ApiMutableModelControllerBase
             $mdl->serializeToConfig();
             Config::getInstance()->save();
             
+            $this->logDebug('saveConfigJsonAction success', array('length' => strlen($jsonStr)));
             $result["result"] = "saved";
         } catch (\Exception $e) {
             $this->logError('saveConfigJsonAction exception', array('message' => $e->getMessage()));
@@ -175,6 +186,17 @@ class SettingsController extends ApiMutableModelControllerBase
         }
         
         return $result;
+    }
+    
+    private function logDebug(string $message, array $context = array()): void
+    {
+        $logFile = '/var/log/kixdns.log';
+        $timestamp = date('Y-m-d H:i:s');
+        $line = sprintf('[%s] [DEBUG] %s', $timestamp, $message);
+        if (!empty($context)) {
+            $line .= ' ' . json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+        @file_put_contents($logFile, $line . PHP_EOL, FILE_APPEND | LOCK_EX);
     }
 
     private function logError(string $message, array $context = array()): void
