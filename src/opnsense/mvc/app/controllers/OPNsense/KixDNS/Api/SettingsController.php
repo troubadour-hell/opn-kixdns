@@ -125,9 +125,9 @@ class SettingsController extends ApiMutableModelControllerBase
                 $templateResult = trim($backend->configdRun('template reload OPNsense/KixDNS'));
                 $this->logDebug('reconfigureAction: template reload done', array('result' => $templateResult));
                 
-                // Use configd to run the configure action which handles rc.conf.d generation
-                $configureResult = trim($backend->configdRun('kixdns configure'));
-                $this->logDebug('reconfigureAction: configure done', array('result' => $configureResult));
+                // Generate /etc/rc.conf.d/kixdns directly
+                $this->generateRcConf();
+                $this->logDebug('reconfigureAction: rc.conf.d generated');
                 
                 // Restart service
                 $restartResult = trim($backend->configdRun('kixdns restart'));
@@ -140,6 +140,56 @@ class SettingsController extends ApiMutableModelControllerBase
             }
         }
         return $result;
+    }
+    
+    /**
+     * Generate /etc/rc.conf.d/kixdns from current config
+     */
+    private function generateRcConf()
+    {
+        $config = Config::getInstance()->toArray();
+        
+        $this->logDebug('generateRcConf: config structure', array(
+            'has_OPNsense' => isset($config['OPNsense']),
+            'has_kixdns' => isset($config['OPNsense']['kixdns']),
+            'has_general' => isset($config['OPNsense']['kixdns']['general']),
+        ));
+        
+        $kixdns_config = array();
+        
+        if (isset($config['OPNsense']['kixdns']['general'])) {
+            $general = $config['OPNsense']['kixdns']['general'];
+            
+            $this->logDebug('generateRcConf: general settings', array(
+                'enabled' => $general['enabled'] ?? 'not set',
+                'listener_label' => $general['listener_label'] ?? 'not set',
+                'debug' => $general['debug'] ?? 'not set',
+            ));
+            
+            $kixdns_config['kixdns_enable'] = ($general['enabled'] ?? '0') == '1' ? 'YES' : 'NO';
+            $kixdns_config['kixdns_config'] = '/usr/local/etc/kixdns/pipeline.json';
+            $kixdns_config['kixdns_listener_label'] = $general['listener_label'] ?? 'default';
+            $kixdns_config['kixdns_debug'] = ($general['debug'] ?? '0') == '1' ? 'YES' : 'NO';
+            $kixdns_config['kixdns_udp_workers'] = '0';
+        } else {
+            $this->logDebug('generateRcConf: no general config found, using defaults');
+            $kixdns_config['kixdns_enable'] = 'NO';
+        }
+        
+        $rc_content = "";
+        foreach ($kixdns_config as $key => $value) {
+            $rc_content .= "{$key}=\"{$value}\"\n";
+        }
+        
+        $this->logDebug('generateRcConf: writing rc.conf.d', array('content' => $rc_content));
+        
+        $writeResult = file_put_contents('/etc/rc.conf.d/kixdns', $rc_content);
+        if ($writeResult === false) {
+            $this->logError('generateRcConf: failed to write /etc/rc.conf.d/kixdns');
+        } else {
+            chmod('/etc/rc.conf.d/kixdns', 0644);
+            $this->logDebug('generateRcConf: wrote ' . $writeResult . ' bytes to /etc/rc.conf.d/kixdns');
+        }
     }
 
     /**
