@@ -1,21 +1,28 @@
 {#
  # KixDNS Configuration View
  # Copyright (C) 2025 KixDNS Project
- # All rights reserved.
  #}
 <style>
-    .editor-pane { height: calc(100vh - 200px); overflow-y: auto; border-right: 1px solid #ddd; padding: 15px; }
-    .preview-pane { height: calc(100vh - 200px); overflow-y: auto; background-color: #2d2d2d; color: #f8f9fa; padding: 15px; }
-    .matcher-item, .action-item { background-color: #fff; border: 1px solid #ddd; padding: 0.5rem; margin-bottom: 0.5rem; border-radius: 0.25rem; }
+    .kixdns-editor { min-height: 600px; }
+    .kixdns-editor .editor-pane { height: calc(100vh - 250px); overflow-y: auto; border-right: 1px solid #ddd; padding: 15px; }
+    .kixdns-editor .preview-pane { height: calc(100vh - 250px); overflow-y: auto; background-color: #1e1e1e; color: #d4d4d4; padding: 15px; }
+    .kixdns-editor .matcher-item, .kixdns-editor .action-item { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 8px; margin-bottom: 8px; border-radius: 4px; }
+    .kixdns-editor .rule-card { border-left: 3px solid #17a2b8; margin-bottom: 10px; }
+    .kixdns-editor .pipeline-panel { margin-bottom: 15px; }
+    .kixdns-editor .section-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; margin-bottom: 5px; }
+    .kixdns-editor .badge-matcher { background: #17a2b8; color: white; }
+    .kixdns-editor .badge-action { background: #ffc107; color: black; }
+    .kixdns-editor .badge-response { background: #28a745; color: white; }
+    .kixdns-editor .json-textarea { font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; background: #1e1e1e; color: #d4d4d4; border: none; resize: none; }
 </style>
 
 <ul class="nav nav-tabs" data-tabs="tabs" id="maintabs">
     <li class="active"><a data-toggle="tab" href="#general">{{ lang._('General') }}</a></li>
-    <li><a data-toggle="tab" href="#editor">{{ lang._('Pipeline Editor') }}</a></li>
+    <li><a data-toggle="tab" href="#editor" id="editor-tab">{{ lang._('Pipeline Editor') }}</a></li>
 </ul>
 
 <div class="tab-content content-box">
-    <!-- General Settings -->
+    <!-- General Settings (Simplified) -->
     <div id="general" class="tab-pane fade in active">
         <div class="content-box" style="padding-bottom: 1.5em;">
             {{ partial("layout_partials/base_form",['fields':generalForm,'id':'frm_general_settings']) }}
@@ -29,70 +36,71 @@
 
     <!-- Pipeline Editor Tab -->
     <div id="editor" class="tab-pane fade">
-        <div id="kixdns-app" class="container-fluid">
+        <div class="kixdns-editor">
             <div class="row">
                 <!-- Editor Pane -->
                 <div class="col-md-7 editor-pane">
-                    <h2>{{ lang._('KixDNS Pipeline Editor') }}</h2>
-                    
                     <!-- Toolbar -->
-                    <div class="btn-toolbar" role="toolbar" style="margin-bottom: 15px;">
+                    <div class="btn-toolbar" style="margin-bottom: 15px;">
                         <div class="btn-group">
-                            <button class="btn btn-primary" id="kixdns-load-json">{{ lang._('Load from JSON') }}</button>
-                            <button class="btn btn-success" id="kixdns-download-json">{{ lang._('Download JSON') }}</button>
+                            <button class="btn btn-primary" id="btn-load-json"><i class="fa fa-download"></i> {{ lang._('Load from JSON') }}</button>
+                            <button class="btn btn-success" id="btn-export-json"><i class="fa fa-upload"></i> {{ lang._('Export JSON') }}</button>
                             <label class="btn btn-default">
-                                {{ lang._('Import File') }} <input type="file" id="kixdns-file-upload" style="display: none;">
+                                <i class="fa fa-folder-open"></i> {{ lang._('Import File') }}
+                                <input type="file" id="file-import" accept=".json" style="display: none;">
                             </label>
-                            <button class="btn btn-warning" id="kixdns-save-config">{{ lang._('Save Config') }}</button>
-                            <button class="btn btn-danger" id="kixdns-apply-changes">{{ lang._('Apply Changes') }}</button>
+                        </div>
+                        <div class="btn-group pull-right">
+                            <button class="btn btn-warning" id="btn-save-config"><i class="fa fa-save"></i> {{ lang._('Save') }}</button>
+                            <button class="btn btn-danger" id="btn-apply-config"><i class="fa fa-check"></i> {{ lang._('Save & Apply') }}</button>
                         </div>
                     </div>
 
                     <!-- Global Settings -->
                     <div class="panel panel-default">
-                        <div class="panel-heading"><strong>{{ lang._('Global Settings') }}</strong></div>
+                        <div class="panel-heading"><strong><i class="fa fa-cog"></i> {{ lang._('Global Settings') }}</strong></div>
                         <div class="panel-body">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>{{ lang._('UDP Listen Address') }}</label>
-                                        <input type="text" class="form-control" id="kixdns-settings-bind-udp">
+                                        <input type="text" class="form-control input-sm" id="cfg-bind-udp" placeholder="0.0.0.0:5353">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>{{ lang._('TCP Listen Address') }}</label>
-                                        <input type="text" class="form-control" id="kixdns-settings-bind-tcp">
+                                        <input type="text" class="form-control input-sm" id="cfg-bind-tcp" placeholder="0.0.0.0:5353">
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label>{{ lang._('Default Upstream') }}</label>
-                                        <input type="text" class="form-control" id="kixdns-settings-default-upstream">
+                                        <input type="text" class="form-control input-sm" id="cfg-default-upstream" placeholder="1.1.1.1:53">
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="form-group">
                                         <label>{{ lang._('Min TTL') }}</label>
-                                        <input type="number" class="form-control" id="kixdns-settings-min-ttl">
+                                        <input type="number" class="form-control input-sm" id="cfg-min-ttl" placeholder="0">
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="form-group">
-                                        <label>{{ lang._('Upstream Timeout (ms)') }}</label>
-                                        <input type="number" class="form-control" id="kixdns-settings-upstream-timeout">
+                                        <label>{{ lang._('Timeout (ms)') }}</label>
+                                        <input type="number" class="form-control input-sm" id="cfg-timeout" placeholder="2000">
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="form-group">
-                                        <label>{{ lang._('Response Jump Limit') }}</label>
-                                        <input type="number" class="form-control" id="kixdns-settings-response-jump-limit">
+                                        <label>{{ lang._('Jump Limit') }}</label>
+                                        <input type="number" class="form-control input-sm" id="cfg-jump-limit" placeholder="10">
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="form-group">
-                                        <label>{{ lang._('UDP Pool Size') }}</label>
-                                        <input type="number" class="form-control" id="kixdns-settings-udp-pool-size" placeholder="0=disabled">
+                                        <label>{{ lang._('UDP Pool') }}</label>
+                                        <input type="number" class="form-control input-sm" id="cfg-udp-pool" placeholder="0">
                                     </div>
                                 </div>
                             </div>
@@ -102,31 +110,26 @@
                     <!-- Pipeline Selectors -->
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            <strong>{{ lang._('Pipeline Selectors') }}</strong>
-                            <button class="btn btn-xs btn-primary pull-right" id="kixdns-add-pipeline-select">+ {{ lang._('Add Selector') }}</button>
+                            <strong><i class="fa fa-random"></i> {{ lang._('Pipeline Selectors') }}</strong>
+                            <button class="btn btn-xs btn-primary pull-right" id="btn-add-selector"><i class="fa fa-plus"></i></button>
                         </div>
-                        <div class="panel-body" id="kixdns-pipeline-select-container">
-                            <!-- Dynamically populated -->
-                        </div>
+                        <div class="panel-body" id="selectors-container"></div>
                     </div>
 
                     <!-- Pipelines -->
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            <strong>{{ lang._('Pipelines') }}</strong>
-                            <button class="btn btn-xs btn-primary pull-right" id="kixdns-add-pipeline">+ {{ lang._('Add Pipeline') }}</button>
+                            <strong><i class="fa fa-sitemap"></i> {{ lang._('Pipelines') }}</strong>
+                            <button class="btn btn-xs btn-primary pull-right" id="btn-add-pipeline"><i class="fa fa-plus"></i></button>
                         </div>
-                        <div class="panel-body" id="kixdns-pipelines-container">
-                            <!-- Dynamically populated -->
-                        </div>
+                        <div class="panel-body" id="pipelines-container"></div>
                     </div>
                 </div>
 
-                <!-- Preview Pane -->
+                <!-- JSON Preview Pane -->
                 <div class="col-md-5 preview-pane">
-                    <h4>{{ lang._('JSON Preview / Edit') }}</h4>
-                    <textarea class="form-control" id="kixdns-json-preview" 
-                        style="height: calc(100vh - 250px); font-size: 12px; font-family: monospace; background-color: #2d2d2d; color: #f8f9fa; border: 1px solid #555;"></textarea>
+                    <h5 style="color: #9cdcfe; margin-bottom: 10px;"><i class="fa fa-code"></i> JSON Preview / Edit</h5>
+                    <textarea class="form-control json-textarea" id="json-preview" style="height: calc(100vh - 300px);"></textarea>
                 </div>
             </div>
         </div>
@@ -137,43 +140,636 @@
 $(document).ready(function() {
     var data_get_map = {'frm_general_settings':"/api/kixdns/settings/get"};
 
-    // Load General Settings
-    mapDataToFormUI(data_get_map).done(function(data){
+    mapDataToFormUI(data_get_map).done(function(){
         formatTokenizersUI();
         $('.selectpicker').selectpicker('refresh');
     });
 
-    // Save General Settings
     $("#saveAct").click(function(){
-        saveFormToEndpoint(url="/api/kixdns/settings/set", formid='frm_general_settings', callback_ok=function(){
+        saveFormToEndpoint("/api/kixdns/settings/set", 'frm_general_settings', function(){
             $("#saveAct").blur();
-            mapDataToFormUI(data_get_map).done(function(data){
-                formatTokenizersUI();
-                $('.selectpicker').selectpicker('refresh');
+        });
+    });
+
+    $("#reloadAct").click(function(){
+        saveFormToEndpoint("/api/kixdns/settings/set", 'frm_general_settings', function(){
+            ajaxCall("/api/kixdns/settings/reconfigure", {}, function(data) {
+                if (data && data.status === 'ok') {
+                    BootstrapDialog.show({
+                        type: BootstrapDialog.TYPE_SUCCESS,
+                        title: "{{ lang._('Success') }}",
+                        message: "{{ lang._('Configuration applied successfully.') }}",
+                        buttons: [{ label: "{{ lang._('Close') }}", action: function(d) { d.close(); } }]
+                    });
+                }
             });
         });
     });
 
-    // Apply Changes (Reload Service)
-    $("#reloadAct").click(function(){
-        ajaxCall(url="/api/kixdns/settings/reconfigure", sendData={}, callback=function(data,status) {
-            if (data && data['status'] == 'ok') {
-                // Show success message
-                BootstrapDialog.show({
-                    type: BootstrapDialog.TYPE_SUCCESS,
-                    title: "{{ lang._('Success') }}",
-                    message: "{{ lang._('Service configuration applied successfully.') }}",
-                    buttons: [{
-                        label: "{{ lang._('Close') }}",
-                        action: function(dialogRef) {
-                            dialogRef.close();
-                        }
-                    }]
-                });
+    // Load editor on tab switch
+    $('#editor-tab').on('shown.bs.tab', function() {
+        KixDNSEditor.load();
+    });
+});
+
+// KixDNS Pipeline Editor
+var KixDNSEditor = (function($) {
+    'use strict';
+
+    var config = {
+        version: "1.0",
+        settings: {
+            min_ttl: 0,
+            bind_udp: "0.0.0.0:5353",
+            bind_tcp: "0.0.0.0:5353",
+            default_upstream: "1.1.1.1:53",
+            upstream_timeout_ms: 2000,
+            response_jump_limit: 10,
+            udp_pool_size: 0
+        },
+        pipeline_select: [],
+        pipelines: []
+    };
+
+    var SELECTOR_MATCHER_TYPES = {
+        'listener_label': 'Listener Label',
+        'client_ip': 'Client IP (CIDR)',
+        'domain_suffix': 'Domain Suffix',
+        'domain_regex': 'Domain Regex',
+        'qclass': 'QClass',
+        'edns_present': 'EDNS Present',
+        'any': 'Any'
+    };
+
+    var REQUEST_MATCHER_TYPES = {
+        'any': 'Any',
+        'domain_suffix': 'Domain Suffix',
+        'domain_regex': 'Domain Regex',
+        'client_ip': 'Client IP (CIDR)',
+        'qclass': 'QClass',
+        'edns_present': 'EDNS Present'
+    };
+
+    var RESPONSE_MATCHER_TYPES = {
+        'upstream_equals': 'Upstream Equals',
+        'request_domain_suffix': 'Req Domain Suffix',
+        'request_domain_regex': 'Req Domain Regex',
+        'response_type': 'Response Type',
+        'response_rcode': 'Response RCode',
+        'response_qclass': 'Response QClass',
+        'response_edns_present': 'Response EDNS',
+        'response_upstream_ip': 'Upstream IP (CIDR)',
+        'response_answer_ip': 'Answer IP (CIDR)'
+    };
+
+    var MATCHER_FIELDS = {
+        'listener_label': ['value'], 'client_ip': ['cidr'], 'domain_suffix': ['value'],
+        'domain_regex': ['value'], 'qclass': ['value'], 'edns_present': ['expect'],
+        'upstream_equals': ['value'], 'request_domain_suffix': ['value'],
+        'request_domain_regex': ['value'], 'response_type': ['value'],
+        'response_rcode': ['value'], 'response_qclass': ['value'],
+        'response_edns_present': ['expect'], 'response_upstream_ip': ['cidr'],
+        'response_answer_ip': ['cidr'], 'any': []
+    };
+
+    function toJson() {
+        return JSON.stringify(config, null, 2);
+    }
+
+    function updatePreview() {
+        $('#json-preview').val(toJson());
+    }
+
+    function syncFromUI() {
+        config.settings.bind_udp = $('#cfg-bind-udp').val() || '0.0.0.0:5353';
+        config.settings.bind_tcp = $('#cfg-bind-tcp').val() || '0.0.0.0:5353';
+        config.settings.default_upstream = $('#cfg-default-upstream').val() || '1.1.1.1:53';
+        config.settings.min_ttl = parseInt($('#cfg-min-ttl').val()) || 0;
+        config.settings.upstream_timeout_ms = parseInt($('#cfg-timeout').val()) || 2000;
+        config.settings.response_jump_limit = parseInt($('#cfg-jump-limit').val()) || 10;
+        config.settings.udp_pool_size = parseInt($('#cfg-udp-pool').val()) || 0;
+        updatePreview();
+    }
+
+    function syncToUI() {
+        $('#cfg-bind-udp').val(config.settings.bind_udp);
+        $('#cfg-bind-tcp').val(config.settings.bind_tcp);
+        $('#cfg-default-upstream').val(config.settings.default_upstream);
+        $('#cfg-min-ttl').val(config.settings.min_ttl);
+        $('#cfg-timeout').val(config.settings.upstream_timeout_ms);
+        $('#cfg-jump-limit').val(config.settings.response_jump_limit);
+        $('#cfg-udp-pool').val(config.settings.udp_pool_size);
+    }
+
+    function renderMatcherSelect(types, selected) {
+        var html = '<select class="form-control input-sm matcher-type" style="width:130px;">';
+        $.each(types, function(k, v) {
+            html += '<option value="'+k+'"'+(k===selected?' selected':'')+'>'+v+'</option>';
+        });
+        return html + '</select>';
+    }
+
+    function renderMatcherInput(matcher) {
+        var type = matcher.type || 'any';
+        var fields = MATCHER_FIELDS[type] || [];
+        var html = '';
+        if (fields.indexOf('value') >= 0) {
+            html += '<input type="text" class="form-control input-sm matcher-value" placeholder="Value" value="'+(matcher.value||'')+'" style="width:150px;">';
+        }
+        if (fields.indexOf('cidr') >= 0) {
+            html += '<input type="text" class="form-control input-sm matcher-cidr" placeholder="CIDR" value="'+(matcher.cidr||'')+'" style="width:150px;">';
+        }
+        if (fields.indexOf('expect') >= 0) {
+            html += '<label class="checkbox-inline" style="margin-left:5px;"><input type="checkbox" class="matcher-expect"'+(matcher.expect!==false?' checked':'')+'> Expect</label>';
+        }
+        return html;
+    }
+
+    function renderMatcherRow(matcher, types, idx) {
+        return '<div class="input-group input-group-sm matcher-row" style="margin-bottom:3px;" data-idx="'+idx+'">' +
+            renderMatcherSelect(types, matcher.type) +
+            renderMatcherInput(matcher) +
+            '<span class="input-group-btn"><button class="btn btn-danger btn-sm btn-remove-matcher" type="button">&times;</button></span>' +
+            '</div>';
+    }
+
+    function renderMatcherList(matchers, types, containerId) {
+        var html = '';
+        (matchers || []).forEach(function(m, i) {
+            html += renderMatcherRow(m, types, i);
+        });
+        html += '<button class="btn btn-link btn-xs btn-add-matcher" type="button"><i class="fa fa-plus"></i> Add</button>';
+        $(containerId).html(html);
+    }
+
+    function renderActionRow(action, pipelineId, idx) {
+        var type = action.type || 'log';
+        var html = '<div class="input-group input-group-sm action-row" style="margin-bottom:3px;" data-idx="'+idx+'">';
+        html += '<select class="form-control input-sm action-type" style="width:130px;">';
+        ['log','static_response','static_ip_response','forward','jump_to_pipeline','allow','deny','continue'].forEach(function(t) {
+            html += '<option value="'+t+'"'+(t===type?' selected':'')+'>'+t+'</option>';
+        });
+        html += '</select>';
+
+        if (type === 'log') {
+            html += '<select class="form-control input-sm action-level" style="width:80px;">';
+            ['trace','debug','info','warn','error'].forEach(function(l) {
+                html += '<option value="'+l+'"'+(l===(action.level||'info')?' selected':'')+'>'+l+'</option>';
+            });
+            html += '</select>';
+        } else if (type === 'static_response') {
+            html += '<select class="form-control input-sm action-rcode" style="width:100px;">';
+            ['NOERROR','NXDOMAIN','SERVFAIL','REFUSED'].forEach(function(r) {
+                html += '<option value="'+r+'"'+(r===action.rcode?' selected':'')+'>'+r+'</option>';
+            });
+            html += '</select>';
+        } else if (type === 'static_ip_response') {
+            html += '<input type="text" class="form-control input-sm action-ip" placeholder="IP" value="'+(action.ip||'')+'" style="width:120px;">';
+        } else if (type === 'forward') {
+            html += '<input type="text" class="form-control input-sm action-upstream" placeholder="Upstream (optional)" value="'+(action.upstream||'')+'" style="width:140px;">';
+            html += '<select class="form-control input-sm action-transport" style="width:70px;">';
+            html += '<option value=""'+((!action.transport)?' selected':'')+'>Auto</option>';
+            html += '<option value="udp"'+((action.transport==='udp')?' selected':'')+'>UDP</option>';
+            html += '<option value="tcp"'+((action.transport==='tcp')?' selected':'')+'>TCP</option>';
+            html += '</select>';
+        } else if (type === 'jump_to_pipeline') {
+            html += '<select class="form-control input-sm action-pipeline" style="width:120px;">';
+            html += '<option value="">Select...</option>';
+            config.pipelines.forEach(function(p) {
+                if (p.id !== pipelineId) {
+                    html += '<option value="'+p.id+'"'+(p.id===action.pipeline?' selected':'')+'>'+p.id+'</option>';
+                }
+            });
+            html += '</select>';
+        }
+
+        html += '<span class="input-group-btn"><button class="btn btn-danger btn-sm btn-remove-action" type="button">&times;</button></span>';
+        html += '</div>';
+        return html;
+    }
+
+    function renderActionList(actions, pipelineId, containerId) {
+        var html = '';
+        (actions || []).forEach(function(a, i) {
+            html += renderActionRow(a, pipelineId, i);
+        });
+        html += '<button class="btn btn-link btn-xs btn-add-action" type="button"><i class="fa fa-plus"></i> Add</button>';
+        $(containerId).html(html);
+    }
+
+    function renderSelectors() {
+        var container = $('#selectors-container');
+        var html = '';
+        config.pipeline_select.forEach(function(sel, idx) {
+            html += '<div class="matcher-item selector-item" data-idx="'+idx+'">';
+            html += '<div class="row"><div class="col-xs-8">';
+            html += '<select class="form-control input-sm selector-pipeline">';
+            html += '<option value="">Select Pipeline...</option>';
+            config.pipelines.forEach(function(p) {
+                html += '<option value="'+p.id+'"'+(p.id===sel.pipeline?' selected':'')+'>'+p.id+'</option>';
+            });
+            html += '</select></div>';
+            html += '<div class="col-xs-4 text-right"><button class="btn btn-danger btn-xs btn-remove-selector"><i class="fa fa-trash"></i></button></div></div>';
+            html += '<div class="selector-matchers" style="margin-top:8px;"></div>';
+            html += '</div>';
+        });
+        container.html(html);
+
+        // Render matchers for each selector
+        config.pipeline_select.forEach(function(sel, idx) {
+            renderMatcherList(sel.matchers, SELECTOR_MATCHER_TYPES, '.selector-item[data-idx='+idx+'] .selector-matchers');
+        });
+    }
+
+    function renderRule(rule, pipelineId, ruleIdx) {
+        var hasForward = (rule.actions || []).some(function(a) { return a.type === 'forward'; });
+        var html = '<div class="panel panel-default rule-card" data-ridx="'+ruleIdx+'">';
+        html += '<div class="panel-heading" style="padding:5px 10px;">';
+        html += '<input type="text" class="form-control input-sm rule-name" value="'+(rule.name||'')+'" placeholder="Rule name" style="width:200px;display:inline-block;">';
+        html += '<button class="btn btn-danger btn-xs pull-right btn-remove-rule"><i class="fa fa-trash"></i></button>';
+        html += '</div><div class="panel-body" style="padding:10px;">';
+
+        html += '<span class="section-badge badge-matcher">Matchers</span>';
+        html += '<div class="rule-matchers"></div>';
+
+        html += '<span class="section-badge badge-action" style="margin-top:8px;">Actions</span>';
+        html += '<div class="rule-actions"></div>';
+
+        if (hasForward) {
+            html += '<span class="section-badge badge-response" style="margin-top:8px;">Response Matchers</span>';
+            html += '<div class="rule-resp-matchers"></div>';
+            html += '<span class="section-badge" style="background:#007bff;color:white;margin-top:8px;">On Match Actions</span>';
+            html += '<div class="rule-resp-match-actions"></div>';
+            html += '<span class="section-badge" style="background:#dc3545;color:white;margin-top:8px;">On Miss Actions</span>';
+            html += '<div class="rule-resp-miss-actions"></div>';
+        }
+
+        html += '</div></div>';
+        return html;
+    }
+
+    function renderPipeline(pipeline, idx) {
+        var html = '<div class="panel panel-info pipeline-panel" data-pidx="'+idx+'">';
+        html += '<div class="panel-heading">';
+        html += '<input type="text" class="form-control input-sm pipeline-id" value="'+pipeline.id+'" style="width:150px;display:inline-block;font-weight:bold;">';
+        html += '<span class="badge" style="margin-left:10px;">'+(pipeline.rules||[]).length+' rules</span>';
+        html += '<button class="btn btn-danger btn-xs pull-right btn-remove-pipeline"><i class="fa fa-trash"></i></button>';
+        html += '</div><div class="panel-body">';
+
+        (pipeline.rules || []).forEach(function(rule, rIdx) {
+            html += renderRule(rule, pipeline.id, rIdx);
+        });
+
+        html += '<button class="btn btn-default btn-sm btn-add-rule" style="width:100%;"><i class="fa fa-plus"></i> Add Rule</button>';
+        html += '</div></div>';
+        return html;
+    }
+
+    function renderPipelines() {
+        var container = $('#pipelines-container');
+        var html = '';
+        config.pipelines.forEach(function(p, idx) {
+            html += renderPipeline(p, idx);
+        });
+        container.html(html);
+
+        // Render nested lists
+        config.pipelines.forEach(function(p, pIdx) {
+            (p.rules || []).forEach(function(r, rIdx) {
+                var ruleEl = '.pipeline-panel[data-pidx='+pIdx+'] .rule-card[data-ridx='+rIdx+']';
+                renderMatcherList(r.matchers, REQUEST_MATCHER_TYPES, ruleEl + ' .rule-matchers');
+                renderActionList(r.actions, p.id, ruleEl + ' .rule-actions');
+                if ((r.actions || []).some(function(a) { return a.type === 'forward'; })) {
+                    renderMatcherList(r.response_matchers, RESPONSE_MATCHER_TYPES, ruleEl + ' .rule-resp-matchers');
+                    renderActionList(r.response_actions_on_match, p.id, ruleEl + ' .rule-resp-match-actions');
+                    renderActionList(r.response_actions_on_miss, p.id, ruleEl + ' .rule-resp-miss-actions');
+                }
+            });
+        });
+    }
+
+    function render() {
+        syncToUI();
+        renderSelectors();
+        renderPipelines();
+        updatePreview();
+    }
+
+    function collectMatchersFromContainer(container) {
+        var matchers = [];
+        container.find('.matcher-row').each(function() {
+            var row = $(this);
+            var m = { type: row.find('.matcher-type').val() };
+            if (row.find('.matcher-value').length) m.value = row.find('.matcher-value').val();
+            if (row.find('.matcher-cidr').length) m.cidr = row.find('.matcher-cidr').val();
+            if (row.find('.matcher-expect').length) m.expect = row.find('.matcher-expect').is(':checked');
+            matchers.push(m);
+        });
+        return matchers;
+    }
+
+    function collectActionsFromContainer(container) {
+        var actions = [];
+        container.find('.action-row').each(function() {
+            var row = $(this);
+            var a = { type: row.find('.action-type').val() };
+            if (a.type === 'log') a.level = row.find('.action-level').val();
+            if (a.type === 'static_response') a.rcode = row.find('.action-rcode').val();
+            if (a.type === 'static_ip_response') a.ip = row.find('.action-ip').val();
+            if (a.type === 'forward') {
+                var up = row.find('.action-upstream').val();
+                if (up) a.upstream = up; else a.upstream = null;
+                var tr = row.find('.action-transport').val();
+                if (tr) a.transport = tr; else a.transport = null;
             }
+            if (a.type === 'jump_to_pipeline') a.pipeline = row.find('.action-pipeline').val();
+            actions.push(a);
+        });
+        return actions;
+    }
+
+    function collectFromUI() {
+        syncFromUI();
+
+        // Collect selectors
+        config.pipeline_select = [];
+        $('.selector-item').each(function() {
+            var item = $(this);
+            config.pipeline_select.push({
+                pipeline: item.find('.selector-pipeline').val(),
+                matchers: collectMatchersFromContainer(item.find('.selector-matchers'))
+            });
+        });
+
+        // Collect pipelines
+        config.pipelines = [];
+        $('.pipeline-panel').each(function() {
+            var panel = $(this);
+            var pipeline = {
+                id: panel.find('.pipeline-id').val(),
+                rules: []
+            };
+            panel.find('.rule-card').each(function() {
+                var ruleEl = $(this);
+                var rule = {
+                    name: ruleEl.find('.rule-name').val(),
+                    matchers: collectMatchersFromContainer(ruleEl.find('.rule-matchers')),
+                    actions: collectActionsFromContainer(ruleEl.find('.rule-actions')),
+                    response_matchers: collectMatchersFromContainer(ruleEl.find('.rule-resp-matchers')),
+                    response_actions_on_match: collectActionsFromContainer(ruleEl.find('.rule-resp-match-actions')),
+                    response_actions_on_miss: collectActionsFromContainer(ruleEl.find('.rule-resp-miss-actions'))
+                };
+                pipeline.rules.push(rule);
+            });
+            config.pipelines.push(pipeline);
+        });
+
+        updatePreview();
+    }
+
+    function load() {
+        $.ajax({
+            url: '/api/kixdns/settings/getConfigJson',
+            method: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                if (data.config_json) {
+                    try {
+                        config = JSON.parse(data.config_json);
+                        if (!config.settings) config.settings = {};
+                        if (!config.pipeline_select) config.pipeline_select = [];
+                        if (!config.pipelines) config.pipelines = [];
+                    } catch(e) {
+                        console.error('Parse error:', e);
+                    }
+                }
+                render();
+            },
+            error: function() {
+                render();
+            }
+        });
+    }
+
+    function save(callback) {
+        collectFromUI();
+        $.ajax({
+            url: '/api/kixdns/settings/saveConfigJson',
+            method: 'POST',
+            data: { config_json: toJson() },
+            dataType: 'json',
+            success: function(data) {
+                if (data.result === 'saved') {
+                    if (callback) callback();
+                } else {
+                    alert('Save failed: ' + (data.message || 'Unknown error'));
+                }
+            },
+            error: function(xhr, status, err) {
+                alert('Save error: ' + err);
+            }
+        });
+    }
+
+    function apply() {
+        save(function() {
+            $.ajax({
+                url: '/api/kixdns/settings/reconfigure',
+                method: 'POST',
+                dataType: 'json',
+                success: function(data) {
+                    if (data.status === 'ok') {
+                        BootstrapDialog.show({
+                            type: BootstrapDialog.TYPE_SUCCESS,
+                            title: 'Success',
+                            message: 'Configuration saved and applied.',
+                            buttons: [{ label: 'Close', action: function(d) { d.close(); } }]
+                        });
+                    }
+                }
+            });
+        });
+    }
+
+    // Event bindings
+    $(document).on('change input', '#cfg-bind-udp,#cfg-bind-tcp,#cfg-default-upstream,#cfg-min-ttl,#cfg-timeout,#cfg-jump-limit,#cfg-udp-pool', function() {
+        collectFromUI();
+    });
+
+    $(document).on('change', '.selector-pipeline,.pipeline-id,.rule-name,.matcher-type,.matcher-value,.matcher-cidr,.matcher-expect,.action-type,.action-level,.action-rcode,.action-ip,.action-upstream,.action-transport,.action-pipeline', function() {
+        collectFromUI();
+        // Re-render if action type changed to/from forward
+        if ($(this).hasClass('action-type')) {
+            render();
+        }
+    });
+
+    $(document).on('click', '#btn-add-selector', function() {
+        config.pipeline_select.push({ pipeline: '', matchers: [] });
+        render();
+    });
+
+    $(document).on('click', '.btn-remove-selector', function() {
+        var idx = $(this).closest('.selector-item').data('idx');
+        config.pipeline_select.splice(idx, 1);
+        render();
+    });
+
+    $(document).on('click', '#btn-add-pipeline', function() {
+        var id = 'pipeline_' + (config.pipelines.length + 1);
+        config.pipelines.push({ id: id, rules: [] });
+        render();
+    });
+
+    $(document).on('click', '.btn-remove-pipeline', function() {
+        var idx = $(this).closest('.pipeline-panel').data('pidx');
+        config.pipelines.splice(idx, 1);
+        render();
+    });
+
+    $(document).on('click', '.btn-add-rule', function() {
+        var idx = $(this).closest('.pipeline-panel').data('pidx');
+        var ruleNum = (config.pipelines[idx].rules || []).length + 1;
+        config.pipelines[idx].rules.push({ name: 'rule_' + ruleNum, matchers: [], actions: [] });
+        render();
+    });
+
+    $(document).on('click', '.btn-remove-rule', function() {
+        collectFromUI();
+        var panel = $(this).closest('.pipeline-panel');
+        var pIdx = panel.data('pidx');
+        var rIdx = $(this).closest('.rule-card').data('ridx');
+        config.pipelines[pIdx].rules.splice(rIdx, 1);
+        render();
+    });
+
+    $(document).on('click', '.btn-add-matcher', function() {
+        collectFromUI();
+        var container = $(this).closest('.selector-matchers,.rule-matchers,.rule-resp-matchers');
+        var firstType = Object.keys(container.closest('.selector-matchers').length ? SELECTOR_MATCHER_TYPES : 
+            (container.closest('.rule-resp-matchers').length ? RESPONSE_MATCHER_TYPES : REQUEST_MATCHER_TYPES))[0];
+        
+        // Find which array to push to
+        if (container.hasClass('selector-matchers')) {
+            var sIdx = container.closest('.selector-item').data('idx');
+            config.pipeline_select[sIdx].matchers.push({ type: firstType });
+        } else {
+            var pIdx = container.closest('.pipeline-panel').data('pidx');
+            var rIdx = container.closest('.rule-card').data('ridx');
+            if (container.hasClass('rule-matchers')) {
+                config.pipelines[pIdx].rules[rIdx].matchers.push({ type: firstType });
+            } else {
+                if (!config.pipelines[pIdx].rules[rIdx].response_matchers) config.pipelines[pIdx].rules[rIdx].response_matchers = [];
+                config.pipelines[pIdx].rules[rIdx].response_matchers.push({ type: firstType });
+            }
+        }
+        render();
+    });
+
+    $(document).on('click', '.btn-remove-matcher', function() {
+        collectFromUI();
+        var row = $(this).closest('.matcher-row');
+        var mIdx = row.data('idx');
+        var container = row.closest('.selector-matchers,.rule-matchers,.rule-resp-matchers');
+        
+        if (container.hasClass('selector-matchers')) {
+            var sIdx = container.closest('.selector-item').data('idx');
+            config.pipeline_select[sIdx].matchers.splice(mIdx, 1);
+        } else {
+            var pIdx = container.closest('.pipeline-panel').data('pidx');
+            var rIdx = container.closest('.rule-card').data('ridx');
+            if (container.hasClass('rule-matchers')) {
+                config.pipelines[pIdx].rules[rIdx].matchers.splice(mIdx, 1);
+            } else {
+                config.pipelines[pIdx].rules[rIdx].response_matchers.splice(mIdx, 1);
+            }
+        }
+        render();
+    });
+
+    $(document).on('click', '.btn-add-action', function() {
+        collectFromUI();
+        var container = $(this).closest('.rule-actions,.rule-resp-match-actions,.rule-resp-miss-actions');
+        var pIdx = container.closest('.pipeline-panel').data('pidx');
+        var rIdx = container.closest('.rule-card').data('ridx');
+        
+        if (container.hasClass('rule-actions')) {
+            config.pipelines[pIdx].rules[rIdx].actions.push({ type: 'log', level: 'info' });
+        } else if (container.hasClass('rule-resp-match-actions')) {
+            if (!config.pipelines[pIdx].rules[rIdx].response_actions_on_match) config.pipelines[pIdx].rules[rIdx].response_actions_on_match = [];
+            config.pipelines[pIdx].rules[rIdx].response_actions_on_match.push({ type: 'log', level: 'info' });
+        } else {
+            if (!config.pipelines[pIdx].rules[rIdx].response_actions_on_miss) config.pipelines[pIdx].rules[rIdx].response_actions_on_miss = [];
+            config.pipelines[pIdx].rules[rIdx].response_actions_on_miss.push({ type: 'log', level: 'info' });
+        }
+        render();
+    });
+
+    $(document).on('click', '.btn-remove-action', function() {
+        collectFromUI();
+        var row = $(this).closest('.action-row');
+        var aIdx = row.data('idx');
+        var container = row.closest('.rule-actions,.rule-resp-match-actions,.rule-resp-miss-actions');
+        var pIdx = container.closest('.pipeline-panel').data('pidx');
+        var rIdx = container.closest('.rule-card').data('ridx');
+        
+        if (container.hasClass('rule-actions')) {
+            config.pipelines[pIdx].rules[rIdx].actions.splice(aIdx, 1);
+        } else if (container.hasClass('rule-resp-match-actions')) {
+            config.pipelines[pIdx].rules[rIdx].response_actions_on_match.splice(aIdx, 1);
+        } else {
+            config.pipelines[pIdx].rules[rIdx].response_actions_on_miss.splice(aIdx, 1);
+        }
+        render();
+    });
+
+    $('#btn-load-json').click(function() {
+        try {
+            config = JSON.parse($('#json-preview').val());
+            render();
+        } catch(e) {
+            alert('Invalid JSON: ' + e.message);
+        }
+    });
+
+    $('#btn-export-json').click(function() {
+        collectFromUI();
+        var blob = new Blob([toJson()], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'pipeline.json';
+        a.click();
+    });
+
+    $('#file-import').change(function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                config = JSON.parse(e.target.result);
+                render();
+            } catch(err) {
+                alert('Invalid JSON file');
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    $('#btn-save-config').click(function() {
+        save(function() {
+            BootstrapDialog.show({
+                type: BootstrapDialog.TYPE_SUCCESS,
+                title: 'Success',
+                message: 'Configuration saved.',
+                buttons: [{ label: 'Close', action: function(d) { d.close(); } }]
         });
     });
 });
-</script>
 
-<script src="/ui/js/kixdns_editor.js"></script>
+    $('#btn-apply-config').click(apply);
+
+    return { load: load, save: save, apply: apply };
+})(jQuery);
+</script>

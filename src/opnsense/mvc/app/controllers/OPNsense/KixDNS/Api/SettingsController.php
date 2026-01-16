@@ -23,48 +23,23 @@ class SettingsController extends ApiMutableModelControllerBase
             if ($mdl && isset($mdl->general)) {
                 $general = $mdl->general;
                 
-                // Convert model fields to array
                 $result['general'] = array(
                     'enabled' => (string)$general->enabled,
-                    'config_path' => (string)$general->config_path,
-                    'bind_udp' => (string)$general->bind_udp,
-                    'bind_tcp' => (string)$general->bind_tcp,
-                    'default_upstream' => (string)$general->default_upstream,
-                    'upstream_timeout' => (string)$general->upstream_timeout,
-                    'response_jump_limit' => (string)$general->response_jump_limit,
-                    'min_ttl' => (string)$general->min_ttl,
-                    'udp_workers' => (string)$general->udp_workers,
-                    'udp_pool_size' => (string)$general->udp_pool_size,
                     'listener_label' => (string)$general->listener_label,
                     'debug' => (string)$general->debug,
                     'log_level' => (string)$general->log_level,
-                    'config_json' => (string)$general->config_json,
                 );
             }
         } catch (\Throwable $e) {
-            $this->logError('getAction exception', array(
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ));
+            $this->logError('getAction exception', array('message' => $e->getMessage()));
         }
         
-        // Fill in defaults for empty values
+        // Fill defaults
         $defaults = array(
             'enabled' => '0',
-            'config_path' => '/usr/local/etc/kixdns/pipeline.json',
-            'bind_udp' => '0.0.0.0:5353',
-            'bind_tcp' => '0.0.0.0:5353',
-            'default_upstream' => '1.1.1.1:53',
-            'upstream_timeout' => '2000',
-            'response_jump_limit' => '10',
-            'min_ttl' => '0',
-            'udp_workers' => '0',
-            'udp_pool_size' => '0',
             'listener_label' => 'default',
             'debug' => '0',
             'log_level' => 'info',
-            'config_json' => '',
         );
         
         foreach ($defaults as $key => $default) {
@@ -89,30 +64,22 @@ class SettingsController extends ApiMutableModelControllerBase
         
         try {
             $mdl = $this->getModel();
-            $post = $this->request->getPost('general');
+            $post = $this->request->getPost('general') ?: array();
             
-            if ($post && $mdl && isset($mdl->general)) {
+            if ($mdl && isset($mdl->general)) {
                 $general = $mdl->general;
                 
-                // Set each field from POST data
-                if (isset($post['enabled'])) $general->enabled = $post['enabled'];
-                if (isset($post['config_path'])) $general->config_path = $post['config_path'];
-                if (isset($post['bind_udp'])) $general->bind_udp = $post['bind_udp'];
-                if (isset($post['bind_tcp'])) $general->bind_tcp = $post['bind_tcp'];
-                if (isset($post['default_upstream'])) $general->default_upstream = $post['default_upstream'];
-                if (isset($post['upstream_timeout'])) $general->upstream_timeout = $post['upstream_timeout'];
-                if (isset($post['response_jump_limit'])) $general->response_jump_limit = $post['response_jump_limit'];
-                if (isset($post['min_ttl'])) $general->min_ttl = $post['min_ttl'];
-                if (isset($post['udp_workers'])) $general->udp_workers = $post['udp_workers'];
-                if (isset($post['udp_pool_size'])) $general->udp_pool_size = $post['udp_pool_size'];
-                if (isset($post['listener_label'])) $general->listener_label = $post['listener_label'];
-                if (isset($post['debug'])) $general->debug = $post['debug'];
-                if (isset($post['log_level'])) $general->log_level = $post['log_level'];
-                if (isset($post['config_json'])) $general->config_json = $post['config_json'];
+                // Handle checkbox fields
+                $general->enabled = isset($post['enabled']) && $post['enabled'] ? '1' : '0';
+                $general->debug = isset($post['debug']) && $post['debug'] ? '1' : '0';
                 
-                // Validate model
+                // Text fields
+                if (isset($post['listener_label'])) $general->listener_label = $post['listener_label'];
+                if (isset($post['log_level'])) $general->log_level = $post['log_level'];
+                
+                // Validate and save
                 $valMsgs = $mdl->performValidation();
-                foreach ($valMsgs as $field => $msg) {
+                foreach ($valMsgs as $msg) {
                     if (!isset($result['validations'])) {
                         $result['validations'] = array();
                     }
@@ -126,11 +93,7 @@ class SettingsController extends ApiMutableModelControllerBase
                 }
             }
         } catch (\Exception $e) {
-            $this->logError('setAction exception', array(
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ));
+            $this->logError('setAction exception', array('message' => $e->getMessage()));
             $result['message'] = $e->getMessage();
         }
         
@@ -138,16 +101,14 @@ class SettingsController extends ApiMutableModelControllerBase
     }
 
     /**
-     * Reconfigure service - regenerate config and restart
+     * Reconfigure service
      */
     public function reconfigureAction()
     {
         $result = array("status" => "failed");
         if ($this->request->isPost()) {
             $backend = new \OPNsense\Core\Backend();
-            // Regenerate template
             $backend->configdRun('template reload OPNsense/KixDNS');
-            // Restart service
             $backend->configdRun('kixdns restart');
             $result["status"] = "ok";
         }
@@ -155,7 +116,7 @@ class SettingsController extends ApiMutableModelControllerBase
     }
 
     /**
-     * Get config JSON for editor
+     * Get config JSON for Pipeline Editor
      */
     public function getConfigJsonAction()
     {
@@ -169,15 +130,12 @@ class SettingsController extends ApiMutableModelControllerBase
             
             return array('config_json' => $configJson);
         } catch (\Exception $e) {
-            $this->logError('getConfigJsonAction exception', array(
-                'message' => $e->getMessage()
-            ));
             return array('result' => 'failed', 'message' => $e->getMessage(), 'config_json' => '');
         }
     }
 
     /**
-     * Save config JSON from editor
+     * Save config JSON from Pipeline Editor
      */
     public function saveConfigJsonAction()
     {
@@ -212,18 +170,13 @@ class SettingsController extends ApiMutableModelControllerBase
             
             $result["result"] = "saved";
         } catch (\Exception $e) {
-            $this->logError('saveConfigJsonAction exception', array(
-                'message' => $e->getMessage()
-            ));
+            $this->logError('saveConfigJsonAction exception', array('message' => $e->getMessage()));
             $result['message'] = $e->getMessage();
         }
         
         return $result;
     }
 
-    /**
-     * Simple file logging helper
-     */
     private function logError(string $message, array $context = array()): void
     {
         $logFile = '/var/log/kixdns.log';
@@ -232,7 +185,6 @@ class SettingsController extends ApiMutableModelControllerBase
         if (!empty($context)) {
             $line .= ' ' . json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
-        $line .= PHP_EOL;
-        @file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
+        @file_put_contents($logFile, $line . PHP_EOL, FILE_APPEND | LOCK_EX);
     }
 }

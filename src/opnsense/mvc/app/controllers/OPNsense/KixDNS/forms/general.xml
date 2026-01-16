@@ -6,64 +6,10 @@
         <help>Enable the KixDNS service.</help>
     </field>
     <field>
-        <id>general.config_path</id>
-        <label>Config file path</label>
-        <type>text</type>
-        <help>Path to the KixDNS JSON configuration file (generated from Pipeline Editor).</help>
-    </field>
-    <field>
-        <id>general.bind_udp</id>
-        <label>Bind UDP</label>
-        <type>text</type>
-        <help>Address and port for UDP listener (e.g. 0.0.0.0:5353).</help>
-    </field>
-    <field>
-        <id>general.bind_tcp</id>
-        <label>Bind TCP</label>
-        <type>text</type>
-        <help>Address and port for TCP listener (e.g. 0.0.0.0:5353).</help>
-    </field>
-    <field>
-        <id>general.default_upstream</id>
-        <label>Default Upstream</label>
-        <type>text</type>
-        <help>Default upstream DNS server (e.g. 1.1.1.1:53).</help>
-    </field>
-    <field>
-        <id>general.upstream_timeout</id>
-        <label>Upstream Timeout (ms)</label>
-        <type>text</type>
-        <help>Timeout in milliseconds for upstream queries.</help>
-    </field>
-    <field>
-        <id>general.response_jump_limit</id>
-        <label>Response Jump Limit</label>
-        <type>text</type>
-        <help>Maximum number of pipeline jumps during response processing.</help>
-    </field>
-    <field>
-        <id>general.min_ttl</id>
-        <label>Min TTL</label>
-        <type>text</type>
-        <help>Minimum TTL in seconds for cached responses.</help>
-    </field>
-    <field>
-        <id>general.udp_workers</id>
-        <label>UDP Workers</label>
-        <type>text</type>
-        <help>Number of UDP worker threads (0 = auto, uses CPU core count).</help>
-    </field>
-    <field>
-        <id>general.udp_pool_size</id>
-        <label>UDP Pool Size</label>
-        <type>text</type>
-        <help>UDP connection pool size (0 = disabled).</help>
-    </field>
-    <field>
         <id>general.listener_label</id>
         <label>Listener Label</label>
         <type>text</type>
-        <help>Listener instance label for pipeline selection (matches --listener-label CLI option).</help>
+        <help>Listener instance label for pipeline selection.</help>
     </field>
     <field>
         <id>general.debug</id>

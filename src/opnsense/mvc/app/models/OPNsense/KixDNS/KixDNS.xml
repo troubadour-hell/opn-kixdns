@@ -7,42 +7,6 @@
                 <default>0</default>
                 <Required>Y</Required>
             </enabled>
-            <config_path type="TextField">
-                <default>/usr/local/etc/kixdns/pipeline.json</default>
-                <Required>Y</Required>
-            </config_path>
-            <bind_udp type="TextField">
-                <default>0.0.0.0:5353</default>
-                <Required>Y</Required>
-            </bind_udp>
-            <bind_tcp type="TextField">
-                <default>0.0.0.0:5353</default>
-                <Required>Y</Required>
-            </bind_tcp>
-            <default_upstream type="TextField">
-                <default>1.1.1.1:53</default>
-                <Required>Y</Required>
-            </default_upstream>
-            <upstream_timeout type="IntegerField">
-                <default>2000</default>
-                <Required>Y</Required>
-            </upstream_timeout>
-            <response_jump_limit type="IntegerField">
-                <default>10</default>
-                <Required>Y</Required>
-            </response_jump_limit>
-            <min_ttl type="IntegerField">
-                <default>0</default>
-                <Required>Y</Required>
-            </min_ttl>
-            <udp_workers type="IntegerField">
-                <default>0</default>
-                <Required>Y</Required>
-            </udp_workers>
-            <udp_pool_size type="IntegerField">
-                <default>0</default>
-                <Required>Y</Required>
-            </udp_pool_size>
             <listener_label type="TextField">
                 <default>default</default>
                 <Required>Y</Required>
@@ -60,7 +24,7 @@
                     <error>Error</error>
                 </OptionValues>
             </log_level>
-            <!-- Full KixDNS pipeline JSON configuration, managed by the visual editor -->
+            <!-- Full KixDNS pipeline JSON configuration, managed by the Pipeline Editor -->
             <config_json type="TextField">
                 <Required>N</Required>
                 <default></default>

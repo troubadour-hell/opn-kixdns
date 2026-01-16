@@ -8,7 +8,6 @@ function kixdns_services()
     global $config;
     $services = array();
 
-    // Check if service is enabled based on model mount point //OPNsense/kixdns
     if (isset($config['OPNsense']['kixdns']['general']['enabled']) &&
         $config['OPNsense']['kixdns']['general']['enabled'] == 1) {
         $services[] = array(
@@ -43,25 +42,15 @@ function kixdns_configure_do($verbose = false)
     if (isset($config['OPNsense']['kixdns']['general'])) {
         $general = $config['OPNsense']['kixdns']['general'];
         
-        // Enable/disable
         $kixdns_config['kixdns_enable'] = ($general['enabled'] ?? '0') == '1' ? 'YES' : 'NO';
-        
-        // Config file path
-        $kixdns_config['kixdns_config'] = $general['config_path'] ?? '/usr/local/etc/kixdns/pipeline.json';
-        
-        // Listener label
+        $kixdns_config['kixdns_config'] = '/usr/local/etc/kixdns/pipeline.json';
         $kixdns_config['kixdns_listener_label'] = $general['listener_label'] ?? 'default';
-        
-        // Debug mode
         $kixdns_config['kixdns_debug'] = ($general['debug'] ?? '0') == '1' ? 'YES' : 'NO';
-        
-        // UDP workers
-        $kixdns_config['kixdns_udp_workers'] = $general['udp_workers'] ?? '0';
+        $kixdns_config['kixdns_udp_workers'] = '0';
     } else {
         $kixdns_config['kixdns_enable'] = 'NO';
     }
     
-    // Write rc.conf.d file
     $rc_content = "";
     foreach ($kixdns_config as $key => $value) {
         $rc_content .= "{$key}=\"{$value}\"\n";
