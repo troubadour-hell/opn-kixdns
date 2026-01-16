@@ -12,13 +12,23 @@
 {
     "version": "1.0",
     "settings": {
+{% if helpers.exists('OPNsense.kixdns.general') %}
         "bind_udp": "{{ OPNsense.kixdns.general.bind_udp|default('0.0.0.0:5353') }}",
         "bind_tcp": "{{ OPNsense.kixdns.general.bind_tcp|default('0.0.0.0:5353') }}",
         "default_upstream": "{{ OPNsense.kixdns.general.default_upstream|default('1.1.1.1:53') }}",
-        "upstream_timeout_ms": {{ OPNsense.kixdns.general.upstream_timeout|default('2000') }},
-        "min_ttl": {{ OPNsense.kixdns.general.min_ttl|default('0') }},
-        "response_jump_limit": {{ OPNsense.kixdns.general.response_jump_limit|default('10') }},
-        "udp_pool_size": {{ OPNsense.kixdns.general.udp_pool_size|default('0') }}
+        "upstream_timeout_ms": {{ OPNsense.kixdns.general.upstream_timeout|default('2000')|int }},
+        "min_ttl": {{ OPNsense.kixdns.general.min_ttl|default('0')|int }},
+        "response_jump_limit": {{ OPNsense.kixdns.general.response_jump_limit|default('10')|int }},
+        "udp_pool_size": {{ OPNsense.kixdns.general.udp_pool_size|default('0')|int }}
+{% else %}
+        "bind_udp": "0.0.0.0:5353",
+        "bind_tcp": "0.0.0.0:5353",
+        "default_upstream": "1.1.1.1:53",
+        "upstream_timeout_ms": 2000,
+        "min_ttl": 0,
+        "response_jump_limit": 10,
+        "udp_pool_size": 0
+{% endif %}
     },
     "pipeline_select": [],
     "pipelines": [
