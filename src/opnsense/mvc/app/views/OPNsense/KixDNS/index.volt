@@ -559,9 +559,20 @@ var KixDNSEditor = (function($) {
     }
 
     function save(callback) {
-        collectFromUI();
-        var jsonData = toJson();
-        console.log('Saving config:', jsonData);
+        // Use the JSON from the preview textarea directly
+        var jsonData = $('#json-preview').val();
+        
+        // Validate JSON before saving
+        try {
+            var parsed = JSON.parse(jsonData);
+            // Update internal config object
+            config = parsed;
+            console.log('Saving config:', jsonData.substring(0, 200) + '...');
+        } catch(e) {
+            alert('Invalid JSON: ' + e.message);
+            return;
+        }
+        
         $.ajax({
             url: '/api/kixdns/settings/saveConfigJson',
             method: 'POST',

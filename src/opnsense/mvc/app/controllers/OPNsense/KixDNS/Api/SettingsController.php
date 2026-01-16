@@ -23,29 +23,40 @@ class SettingsController extends ApiMutableModelControllerBase
             if ($mdl && isset($mdl->general)) {
                 $general = $mdl->general;
                 
+                // Get current log_level value
+                $logLevelValue = (string)$general->log_level ?: 'info';
+                
+                // Build log_level options with selected state
+                $logLevelOptions = array(
+                    'trace' => array('value' => 'Trace', 'selected' => ($logLevelValue === 'trace') ? 1 : 0),
+                    'debug' => array('value' => 'Debug', 'selected' => ($logLevelValue === 'debug') ? 1 : 0),
+                    'info' => array('value' => 'Info', 'selected' => ($logLevelValue === 'info') ? 1 : 0),
+                    'warn' => array('value' => 'Warning', 'selected' => ($logLevelValue === 'warn') ? 1 : 0),
+                    'error' => array('value' => 'Error', 'selected' => ($logLevelValue === 'error') ? 1 : 0),
+                );
+                
                 $result['general'] = array(
-                    'enabled' => (string)$general->enabled,
-                    'listener_label' => (string)$general->listener_label,
-                    'debug' => (string)$general->debug,
-                    'log_level' => (string)$general->log_level,
+                    'enabled' => (string)$general->enabled ?: '0',
+                    'listener_label' => (string)$general->listener_label ?: 'default',
+                    'debug' => (string)$general->debug ?: '0',
+                    'log_level' => $logLevelOptions,
                 );
             }
         } catch (\Throwable $e) {
             $this->logError('getAction exception', array('message' => $e->getMessage()));
-        }
-        
-        // Fill defaults
-        $defaults = array(
-            'enabled' => '0',
-            'listener_label' => 'default',
-            'debug' => '0',
-            'log_level' => 'info',
-        );
-        
-        foreach ($defaults as $key => $default) {
-            if (!isset($result['general'][$key]) || $result['general'][$key] === '') {
-                $result['general'][$key] = $default;
-            }
+            // Return defaults on error
+            $result['general'] = array(
+                'enabled' => '0',
+                'listener_label' => 'default',
+                'debug' => '0',
+                'log_level' => array(
+                    'trace' => array('value' => 'Trace', 'selected' => 0),
+                    'debug' => array('value' => 'Debug', 'selected' => 0),
+                    'info' => array('value' => 'Info', 'selected' => 1),
+                    'warn' => array('value' => 'Warning', 'selected' => 0),
+                    'error' => array('value' => 'Error', 'selected' => 0),
+                ),
+            );
         }
         
         return $result;
@@ -107,10 +118,38 @@ class SettingsController extends ApiMutableModelControllerBase
     {
         $result = array("status" => "failed");
         if ($this->request->isPost()) {
-            $backend = new \OPNsense\Core\Backend();
-            $backend->configdRun('template reload OPNsense/KixDNS');
-            $backend->configdRun('kixdns restart');
-            $result["status"] = "ok";
+            try {
+                // Generate /etc/rc.conf.d/kixdns
+                if (function_exists('kixdns_configure_do')) {
+                    kixdns_configure_do();
+                    $this->logDebug('reconfigureAction: kixdns_configure_do() called');
+                } else {
+                    // Manually include and call
+                    $incFile = '/usr/local/etc/inc/plugins.inc.d/kixdns.inc';
+                    if (file_exists($incFile)) {
+                        include_once($incFile);
+                        if (function_exists('kixdns_configure_do')) {
+                            kixdns_configure_do();
+                            $this->logDebug('reconfigureAction: kixdns_configure_do() called after include');
+                        }
+                    }
+                }
+                
+                $backend = new \OPNsense\Core\Backend();
+                
+                // Reload templates
+                $backend->configdRun('template reload OPNsense/KixDNS');
+                $this->logDebug('reconfigureAction: template reload done');
+                
+                // Restart service
+                $backend->configdRun('kixdns restart');
+                $this->logDebug('reconfigureAction: kixdns restart done');
+                
+                $result["status"] = "ok";
+            } catch (\Exception $e) {
+                $this->logError('reconfigureAction exception', array('message' => $e->getMessage()));
+                $result['message'] = $e->getMessage();
+            }
         }
         return $result;
     }
@@ -121,11 +160,12 @@ class SettingsController extends ApiMutableModelControllerBase
     public function getConfigJsonAction()
     {
         try {
-            $mdl = $this->getModel();
             $configJson = '';
             
-            if ($mdl && isset($mdl->general) && isset($mdl->general->config_json)) {
-                $configJson = (string)$mdl->general->config_json;
+            // Read directly from config.xml to ensure we get latest data
+            $cfgXml = Config::getInstance()->object();
+            if (isset($cfgXml->OPNsense->kixdns->general->config_json)) {
+                $configJson = (string)$cfgXml->OPNsense->kixdns->general->config_json;
             }
             
             $this->logDebug('getConfigJsonAction', array('length' => strlen($configJson)));
@@ -176,9 +216,22 @@ class SettingsController extends ApiMutableModelControllerBase
             $mdl = $this->getModel();
             $mdl->general->config_json = $jsonStr;
             $mdl->serializeToConfig();
-            Config::getInstance()->save();
             
-            $this->logDebug('saveConfigJsonAction success', array('length' => strlen($jsonStr)));
+            $cfgInstance = Config::getInstance();
+            $cfgInstance->save();
+            
+            // Verify save by reading config.xml directly
+            $cfgXml = $cfgInstance->object();
+            $savedValue = '';
+            if (isset($cfgXml->OPNsense->kixdns->general->config_json)) {
+                $savedValue = (string)$cfgXml->OPNsense->kixdns->general->config_json;
+            }
+            
+            $this->logDebug('saveConfigJsonAction success', array(
+                'input_length' => strlen($jsonStr),
+                'saved_length' => strlen($savedValue),
+                'verified' => strlen($savedValue) > 0 ? 'yes' : 'no'
+            ));
             $result["result"] = "saved";
         } catch (\Exception $e) {
             $this->logError('saveConfigJsonAction exception', array('message' => $e->getMessage()));
