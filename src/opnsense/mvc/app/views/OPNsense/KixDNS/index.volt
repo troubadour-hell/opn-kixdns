@@ -153,7 +153,7 @@ $(document).ready(function() {
 
     $("#reloadAct").click(function(){
         saveFormToEndpoint("/api/kixdns/settings/set", 'frm_general_settings', function(){
-            ajaxCall("/api/kixdns/settings/reconfigure", {}, function(data) {
+            ajaxCall("/api/kixdns/service/reconfigure", {}, function(data) {
                 if (data && data.status === 'ok') {
                     BootstrapDialog.show({
                         type: BootstrapDialog.TYPE_SUCCESS,

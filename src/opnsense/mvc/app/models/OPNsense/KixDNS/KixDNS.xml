@@ -1,5 +1,6 @@
 <model>
     <mount>//OPNsense/kixdns</mount>
+    <version>1.0.0</version>
     <description>KixDNS Configuration</description>
     <items>
         <general>

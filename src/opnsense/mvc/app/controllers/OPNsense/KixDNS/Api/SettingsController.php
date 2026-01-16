@@ -12,184 +12,22 @@ class SettingsController extends ApiMutableModelControllerBase
 
     /**
      * Get general settings
+     * Uses parent's getBase with node path 'general' and JSON key 'general'
      */
     public function getAction()
     {
-        $result = array('general' => array());
-        
-        try {
-            $mdl = $this->getModel();
-            
-            if ($mdl && isset($mdl->general)) {
-                $general = $mdl->general;
-                
-                // Get current log_level value
-                $logLevelValue = (string)$general->log_level ?: 'info';
-                
-                // Build log_level options with selected state
-                $logLevelOptions = array(
-                    'trace' => array('value' => 'Trace', 'selected' => ($logLevelValue === 'trace') ? 1 : 0),
-                    'debug' => array('value' => 'Debug', 'selected' => ($logLevelValue === 'debug') ? 1 : 0),
-                    'info' => array('value' => 'Info', 'selected' => ($logLevelValue === 'info') ? 1 : 0),
-                    'warn' => array('value' => 'Warning', 'selected' => ($logLevelValue === 'warn') ? 1 : 0),
-                    'error' => array('value' => 'Error', 'selected' => ($logLevelValue === 'error') ? 1 : 0),
-                );
-                
-                $result['general'] = array(
-                    'enabled' => (string)$general->enabled ?: '0',
-                    'listener_label' => (string)$general->listener_label ?: 'default',
-                    'debug' => (string)$general->debug ?: '0',
-                    'log_level' => $logLevelOptions,
-                );
-            }
-        } catch (\Throwable $e) {
-            $this->logError('getAction exception', array('message' => $e->getMessage()));
-            // Return defaults on error
-            $result['general'] = array(
-                'enabled' => '0',
-                'listener_label' => 'default',
-                'debug' => '0',
-                'log_level' => array(
-                    'trace' => array('value' => 'Trace', 'selected' => 0),
-                    'debug' => array('value' => 'Debug', 'selected' => 0),
-                    'info' => array('value' => 'Info', 'selected' => 1),
-                    'warn' => array('value' => 'Warning', 'selected' => 0),
-                    'error' => array('value' => 'Error', 'selected' => 0),
-                ),
-            );
-        }
-        
-        return $result;
+        return $this->getBase('general', 'general');
     }
 
     /**
      * Save general settings
+     * Uses parent's setBase with node path 'general' and JSON key 'general'  
      */
     public function setAction()
     {
-        $result = array('result' => 'failed');
-        
-        if (!$this->request->isPost()) {
-            return $result;
-        }
-        
-        try {
-            $mdl = $this->getModel();
-            $post = $this->request->getPost('general') ?: array();
-            
-            if ($mdl && isset($mdl->general)) {
-                $general = $mdl->general;
-                
-                // Handle checkbox fields
-                $general->enabled = isset($post['enabled']) && $post['enabled'] ? '1' : '0';
-                $general->debug = isset($post['debug']) && $post['debug'] ? '1' : '0';
-                
-                // Text fields
-                if (isset($post['listener_label'])) $general->listener_label = $post['listener_label'];
-                if (isset($post['log_level'])) $general->log_level = $post['log_level'];
-                
-                // Validate and save
-                $valMsgs = $mdl->performValidation();
-                foreach ($valMsgs as $msg) {
-                    if (!isset($result['validations'])) {
-                        $result['validations'] = array();
-                    }
-                    $result['validations']['general.' . $msg->getField()] = $msg->getMessage();
-                }
-                
-                if (empty($result['validations'])) {
-                    $mdl->serializeToConfig();
-                    Config::getInstance()->save();
-                    $result['result'] = 'saved';
-                }
-            }
-        } catch (\Exception $e) {
-            $this->logError('setAction exception', array('message' => $e->getMessage()));
-            $result['message'] = $e->getMessage();
-        }
-        
+        $result = $this->setBase('general', 'general');
+        $this->logDebug('setAction result', array('result' => $result));
         return $result;
-    }
-
-    /**
-     * Reconfigure service
-     */
-    public function reconfigureAction()
-    {
-        $result = array("status" => "failed");
-        if ($this->request->isPost()) {
-            try {
-                $backend = new \OPNsense\Core\Backend();
-                
-                // Reload templates first - this generates pipeline.json from config
-                $templateResult = trim($backend->configdRun('template reload OPNsense/KixDNS'));
-                $this->logDebug('reconfigureAction: template reload done', array('result' => $templateResult));
-                
-                // Generate /etc/rc.conf.d/kixdns directly
-                $this->generateRcConf();
-                $this->logDebug('reconfigureAction: rc.conf.d generated');
-                
-                // Restart service
-                $restartResult = trim($backend->configdRun('kixdns restart'));
-                $this->logDebug('reconfigureAction: kixdns restart done', array('result' => $restartResult));
-                
-                $result["status"] = "ok";
-            } catch (\Exception $e) {
-                $this->logError('reconfigureAction exception', array('message' => $e->getMessage()));
-                $result['message'] = $e->getMessage();
-            }
-        }
-        return $result;
-    }
-    
-    /**
-     * Generate /etc/rc.conf.d/kixdns from current config
-     */
-    private function generateRcConf()
-    {
-        $config = Config::getInstance()->toArray();
-        
-        $this->logDebug('generateRcConf: config structure', array(
-            'has_OPNsense' => isset($config['OPNsense']),
-            'has_kixdns' => isset($config['OPNsense']['kixdns']),
-            'has_general' => isset($config['OPNsense']['kixdns']['general']),
-        ));
-        
-        $kixdns_config = array();
-        
-        if (isset($config['OPNsense']['kixdns']['general'])) {
-            $general = $config['OPNsense']['kixdns']['general'];
-            
-            $this->logDebug('generateRcConf: general settings', array(
-                'enabled' => $general['enabled'] ?? 'not set',
-                'listener_label' => $general['listener_label'] ?? 'not set',
-                'debug' => $general['debug'] ?? 'not set',
-            ));
-            
-            $kixdns_config['kixdns_enable'] = ($general['enabled'] ?? '0') == '1' ? 'YES' : 'NO';
-            $kixdns_config['kixdns_config'] = '/usr/local/etc/kixdns/pipeline.json';
-            $kixdns_config['kixdns_listener_label'] = $general['listener_label'] ?? 'default';
-            $kixdns_config['kixdns_debug'] = ($general['debug'] ?? '0') == '1' ? 'YES' : 'NO';
-            $kixdns_config['kixdns_udp_workers'] = '0';
-        } else {
-            $this->logDebug('generateRcConf: no general config found, using defaults');
-            $kixdns_config['kixdns_enable'] = 'NO';
-        }
-        
-        $rc_content = "";
-        foreach ($kixdns_config as $key => $value) {
-            $rc_content .= "{$key}=\"{$value}\"\n";
-        }
-        
-        $this->logDebug('generateRcConf: writing rc.conf.d', array('content' => $rc_content));
-        
-        $writeResult = file_put_contents('/etc/rc.conf.d/kixdns', $rc_content);
-        if ($writeResult === false) {
-            $this->logError('generateRcConf: failed to write /etc/rc.conf.d/kixdns');
-        } else {
-            chmod('/etc/rc.conf.d/kixdns', 0644);
-            $this->logDebug('generateRcConf: wrote ' . $writeResult . ' bytes to /etc/rc.conf.d/kixdns');
-        }
     }
 
     /**
